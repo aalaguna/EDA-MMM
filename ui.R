@@ -159,25 +159,22 @@ ui <- fluidPage(
     # Tab UNIVARIATE (sin sidebar, ocupamos todo el ancho)
     tabPanel("Univariate",
              fluidPage(
-               # Filtros en Univariate
+               
+               # Sección de Filtros
                div(class = "filters-section",
+                   style = "background-color: #f8f9fa; border: 1px solid #ddd; border-radius: 5px; padding: 15px; margin-bottom: 20px;",
+                   h4("Global Filters", style = "margin-bottom: 15px;"),
                    fluidRow(
-                     column(12, 
-                            div(class = "filter-box",
-                                fluidRow(
-                                  column(2, div(class = "custom-select-container",
-                                                selectInput("geography", "Geography", choices = c("All/Total")))),
-                                  column(2, div(class = "custom-select-container",
-                                                selectInput("product", "Product", choices = c("All/Total")))),
-                                  column(2, div(class = "custom-select-container",
-                                                selectInput("campaign", "Campaign", choices = c("Total")))),
-                                  column(2, div(class = "custom-select-container",
-                                                selectInput("outlet", "Outlet", choices = c("Total")))),
-                                  column(2, div(class = "custom-select-container",
-                                                selectInput("creative", "Creative", choices = c("Total"))))
-                                )
-                            )
-                     )
+                     column(2, div(class = "custom-select-container",
+                                   selectInput("geography", "Geography", choices = c("All/Total")))),
+                     column(2, div(class = "custom-select-container",
+                                   selectInput("product", "Product", choices = c("All/Total")))),
+                     column(2, div(class = "custom-select-container",
+                                   selectInput("campaign", "Campaign", choices = c("Total")))),
+                     column(2, div(class = "custom-select-container",
+                                   selectInput("outlet", "Outlet", choices = c("Total")))),
+                     column(2, div(class = "custom-select-container",
+                                   selectInput("creative", "Creative", choices = c("Total"))))
                    )
                ),
                
@@ -311,7 +308,7 @@ ui <- fluidPage(
     ),
     
     # Tab MULTIVARIATE (sin sidebar)
-    tabPanel("Multivariado",
+    tabPanel("Multivariate",
              fluidPage(
                fluidRow(
                  column(3,
