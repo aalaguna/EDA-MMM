@@ -1,3 +1,5 @@
+# ui.R
+
 library(shiny)
 library(shinythemes)
 library(plotly)
@@ -36,10 +38,6 @@ ui <- fluidPage(
         )
       )
   ),
-  
-  # En lugar de un sidebarLayout fijo, usamos un layout condicional:
-  # - Si estamos en la pestaña 'Información', mostramos Data Management a la izquierda.
-  # - En las demás pestañas, ocultamos el panel lateral y usamos el espacio completo.
   
   navbarPage(
     id = "main-tabs",
@@ -161,36 +159,60 @@ ui <- fluidPage(
     # Tab UNIVARIATE (sin sidebar, ocupamos todo el ancho)
     tabPanel("Univariate",
              fluidPage(
-               # Panel superior para Geography, Product, Campaign, Outlet, Creative
-               fluidPage(
-                 fluidRow(
-                   column(12,
-                          wellPanel(
-                            h4("Global Filters", class = "section-title"),
-                            fluidRow(
-                              # Geography dinámico
-                              column(2,
-                                     selectInput("geography_univ", "Geography", choices = NULL)  # Lista inicial vacía
-                              ),
-                              # Las demás opciones quedan estáticas por ahora
-                              column(2,
-                                     selectInput("product_univ", "Product", choices = c("Product A", "Product B", "Product C"))
-                              ),
-                              column(2,
-                                     selectInput("campaign_univ", "Campaign", choices = c("Campaign 1", "Campaign 2", "Campaign 3"))
-                              ),
-                              column(2,
-                                     selectInput("outlet_univ", "Outlet", choices = c("Outlet X", "Outlet Y", "Outlet Z"))
-                              ),
-                              column(2,
-                                     selectInput("creative_univ", "Creative", choices = c("Creative 1", "Creative 2", "Creative 3"))
-                              )
+               # Filtros en Univariate
+               div(class = "filters-section",
+                   fluidRow(
+                     column(12, 
+                            div(class = "filter-box",
+                                fluidRow(
+                                  column(2, div(class = "custom-select-container",
+                                                selectInput("geography", "Geography", choices = c("All/Total")))),
+                                  column(2, div(class = "custom-select-container",
+                                                selectInput("product", "Product", choices = c("All/Total")))),
+                                  column(2, div(class = "custom-select-container",
+                                                selectInput("campaign", "Campaign", choices = c("Total")))),
+                                  column(2, div(class = "custom-select-container",
+                                                selectInput("outlet", "Outlet", choices = c("Total")))),
+                                  column(2, div(class = "custom-select-container",
+                                                selectInput("creative", "Creative", choices = c("Total"))))
+                                )
                             )
-                          )
+                     )
                    )
-                 )
                ),
-               # Transformaciones, boxplot, etc.
+               
+               
+               # # Panel superior para Geography, Product, Campaign, Outlet, Creative
+               # fluidPage(
+               #   fluidRow(
+               #     column(12,
+               #            wellPanel(
+               #              h4("Global Filters", class = "section-title"),
+               #              fluidRow(
+               #                # Geography dinámico
+               #                column(2,
+               #                       selectInput("geography_univ", "Geography", choices = NULL)  # Lista inicial vacía
+               #                ),
+               #                # Las demás opciones quedan estáticas por ahora
+               #                column(2,
+               #                       selectInput("product_univ", "Product", choices = c("Product A", "Product B", "Product C"))
+               #                ),
+               #                column(2,
+               #                       selectInput("campaign_univ", "Campaign", choices = c("Campaign 1", "Campaign 2", "Campaign 3"))
+               #                ),
+               #                column(2,
+               #                       selectInput("outlet_univ", "Outlet", choices = c("Outlet X", "Outlet Y", "Outlet Z"))
+               #                ),
+               #                column(2,
+               #                       selectInput("creative_univ", "Creative", choices = c("Creative 1", "Creative 2", "Creative 3"))
+               #                )
+               #              )
+               #            )
+               #     )
+               #   )
+               # ),
+               
+               # Transformation
                fluidRow(
                  column(12,
                         wellPanel(
@@ -264,16 +286,13 @@ ui <- fluidPage(
                               ),
                               column(6,
                                      div(class = "chart-box",
-                                         h4("Transformaciones Aplicadas", class = "chart-title"),
+                                         h4("Applied transformation", class = "chart-title"),
                                          # Aquí simplemente mostramos un texto o tabla con la explicación
                                          verbatimTextOutput("transformations_summary_univ")
                                      )
                               )
                             ),
                             
-                            # Curva S condicional: solo si "S Origin" (o "S Shaped") 
-                            # y si realmente la queremos mostrar.
-                            # Por ejemplo, si la fuente de datos es S Origin, 
                             conditionalPanel(
                               condition = "input.transformation_univ == 'S Origin'",
                               fluidRow(

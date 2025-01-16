@@ -1,4 +1,5 @@
-# 5 server.R
+# server.R
+
 library(shiny)
 library(dplyr)
 library(tidyr)
@@ -9,9 +10,9 @@ library(stringr)
 library(DT)
 library(plotly)
 
-# Fuentes externas (ajusta las rutas si es necesario)
-source("EDA/Scripts/EDA Functions.R")          # s_curve_transform, etc.
-source("EDA/Scripts/S-Curve EDA Combination.R") # create_flighting_chart + create_s_curve_chart
+# Fuentes externas 
+source("EDA/Scripts/EDA Functions.R")          
+source("EDA/Scripts/S-Curve EDA Combination.R")
 
 server <- function(input, output, session) {
   
@@ -154,7 +155,7 @@ server <- function(input, output, session) {
   # INFORMATION TAB ---------------------------------------------------------
   
   
-  
+  # Presencia de medios > 0
   output$activity_table <- renderTable({
     req(rv$filtered_data, input$media_vars)
     rv$filtered_data %>%
@@ -165,6 +166,7 @@ server <- function(input, output, session) {
                    values_to = "Activity %")
   })
   
+  # Presencia del gasto > 0
   output$spend_table <- renderTable({
     req(rv$filtered_data, input$spend_vars)
     total_spend <- sum(rv$filtered_data[[input$spend_vars[1]]], na.rm = TRUE)
@@ -177,6 +179,7 @@ server <- function(input, output, session) {
                    values_to = "Spend %")
   })
   
+  # Porcentaje de actividad por variable
   output$activity_percentage_table <- renderTable({
     req(rv$filtered_data, input$media_vars)
     total_activity <- sum(rv$filtered_data[input$media_vars], na.rm = TRUE)
@@ -190,6 +193,7 @@ server <- function(input, output, session) {
       select(Variable, Activity_Percentage)
   })
   
+  # Porcentaje de gasto por variable
   output$spend_percentage_table <- renderTable({
     req(rv$filtered_data, input$spend_vars)
     total_spend <- sum(rv$filtered_data[input$spend_vars], na.rm = TRUE)
@@ -208,11 +212,11 @@ server <- function(input, output, session) {
     total_activity <- rv$filtered_data %>%
       summarise(across(all_of(input$media_vars), ~ sum(., na.rm = TRUE))) %>%
       pivot_longer(cols = everything(), names_to = "Variable", values_to = "Activity")
-    
+
     total_spend <- rv$filtered_data %>%
       summarise(across(all_of(input$spend_vars), ~ sum(., na.rm = TRUE))) %>%
       pivot_longer(cols = everything(), names_to = "Variable", values_to = "Spend")
-    
+
     combined_stats <- total_activity %>%
       mutate(Spend = total_spend$Spend) %>%
       mutate(CPM_CPC = ifelse(Activity > 0,
@@ -221,6 +225,37 @@ server <- function(input, output, session) {
     combined_stats
   })
   
+  # output$cpm_cpc <- renderTable({
+  #   req(rv$filtered_data(), input$media_vars, input$spend_vars)
+  #   
+  #   # Identificar las variables comunes entre `media_vars` y `spend_vars`
+  #   common_vars <- intersect(input$media_vars, input$spend_vars)
+  #   if (length(common_vars) == 0) {
+  #     return(data.frame(Variable = character(), Activity = numeric(), Spend = numeric(), CPC = numeric(), CPM = numeric()))
+  #   }
+  #   
+  #   # Calcular actividad total para las variables comunes
+  #   total_activity <- rv$filtered_data() %>%
+  #     summarise(across(all_of(common_vars), ~ sum(., na.rm = TRUE))) %>%
+  #     pivot_longer(cols = everything(), names_to = "Variable", values_to = "Activity")
+  #   
+  #   # Calcular gasto total para las variables comunes
+  #   total_spend <- rv$filtered_data() %>%
+  #     summarise(across(all_of(common_vars), ~ sum(., na.rm = TRUE))) %>%
+  #     pivot_longer(cols = everything(), names_to = "Variable", values_to = "Spend")
+  #   
+  #   # Combinar actividad y gasto
+  #   combined_stats <- total_activity %>%
+  #     left_join(total_spend, by = "Variable") %>%
+  #     mutate(
+  #       CPC = ifelse(Activity > 0, round(Spend / Activity, 2), NA),
+  #       CPM = ifelse(Activity > 0, round((Spend / Activity) * 1000, 2), NA)
+  #     )
+  #   
+  #   combined_stats
+  # })
+  
+  # DOWNLOAD CPM/CPC
   output$download_cpm_cpc <- downloadHandler(
     filename = function() {
       paste("CPM_CPC_Table", Sys.Date(), ".csv", sep = "")
@@ -246,9 +281,7 @@ server <- function(input, output, session) {
     }
   )
   
-  
   # UNIVARIATE TAB ----------------------------------------------------------
-  
   
   # 1. Variable Flighting
   output$variable_flighting_chart <- renderPlotly({
@@ -401,12 +434,8 @@ server <- function(input, output, session) {
             titleX = TRUE, titleY = TRUE) %>%
       layout(title = "S-Curve EDA")
   })
-  
-  
-  
-  
+
   # MULTIVARIATE TAB --------------------------------------------------------
-  
   
   output$variables_chart_multi <- renderPlot({
     req(rv$filtered_data, input$var1_multi, input$var2_multi, input$var3_multi)
