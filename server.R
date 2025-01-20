@@ -23,47 +23,40 @@ server <- function(input, output, session) {
   )
   
   # 1. Carga de datos ---------------------------------------
+  # Carga de datos
   loaded_data <- reactive({
     req(input$file)
     file <- input$file
-    ext  <- tools::file_ext(file$name)
+    ext <- tools::file_ext(file$name)
     
     tryCatch({
-      if(ext == "csv"){
-        data <- read.csv(file$datapath, stringsAsFactors = FALSE)
-      } else if(ext == "RData"){
+      if (ext == "csv") {
+        read.csv(file$datapath, stringsAsFactors = FALSE)
+      } else if (ext == "RData") {
         env <- new.env()
         load(file$datapath, envir = env)
         objs <- ls(env)
         data_objs <- objs[sapply(objs, function(x) is.data.frame(get(x, envir = env)))]
-        if(length(data_objs) == 0){
-          stop("El archivo .RData no contiene ningún data.frame.")
-        }
-        data <- get(data_objs[1], envir = env)
-        if(!is.data.frame(data)){
-          stop("El objeto seleccionado no es un data.frame.")
-        }
+        if (length(data_objs) == 0) stop("El archivo .RData no contiene ningún data.frame.")
+        get(data_objs[1], envir = env)
       } else {
         stop("Formato de archivo no soportado. Por favor, suba un archivo .csv o .RData.")
       }
-      return(data)
-    }, error = function(e){
-      showNotification(paste("Error al cargar el archivo:", e$message),
-                       type = "error")
-      return(NULL)
+    }, error = function(e) {
+      showNotification(paste("Error al cargar el archivo:", e$message), type = "error")
+      NULL
     })
   })
   
-  # Observador que asigna rv$data cuando loaded_data() cambia
   observeEvent(loaded_data(), {
     rv$data <- loaded_data()
     req(rv$data)
     
     # Convertir columnas de fecha (Period o periodo) a Date
-    if("Period" %in% names(rv$data)){
+    if ("Period" %in% names(rv$data)) {
       rv$data$Period <- as.Date(rv$data$Period)
     }
-    if("periodo" %in% names(rv$data)){
+    if ("periodo" %in% names(rv$data)) {
       rv$data$periodo <- as.Date(rv$data$periodo)
     }
     
@@ -78,27 +71,16 @@ server <- function(input, output, session) {
     MEDIA_VARIABLES <- intersect(MEDIA_VARIABLES, numeric_cols)
     SPEND_VARIABLES <- intersect(SPEND_VARIABLES, numeric_cols)
     
-    # Actualizar inputs de "Data Management" y univariado/multivariado
-    updateSelectInput(session, "kpi",        choices = numeric_cols)
+    updateSelectInput(session, "kpi", choices = numeric_cols)
     updateSelectInput(session, "media_vars", choices = MEDIA_VARIABLES)
     updateSelectInput(session, "spend_vars", choices = SPEND_VARIABLES)
-    updateSelectInput(session, "base_vars",  choices = numeric_cols)
-    
-    updateSelectInput(session, "kpi_univ",      choices = numeric_cols)
-    updateSelectInput(session, "variable_univ", choices = numeric_cols)
-    updateSelectInput(session, "kpi_multi",     choices = numeric_cols)
-    updateSelectInput(session, "var1_multi",    choices = numeric_cols)
-    updateSelectInput(session, "var2_multi",    choices = numeric_cols)
-    updateSelectInput(session, "var3_multi",    choices = numeric_cols)
-    updateSelectInput(session, "var4_multi",    choices = c("None", numeric_cols))
   })
   
-  # 2. Observador para filtrar datos según la fecha seleccionada -----------
+  # Observador para filtrar datos por fecha
   observe({
     req(rv$data)
     df <- rv$data
     
-    # Checar columna de fecha
     date_col <- NULL
     if ("Period" %in% names(df)) {
       date_col <- "Period"
@@ -119,148 +101,41 @@ server <- function(input, output, session) {
   })
   
   
-  # Función genérica de transformación
-  apply_transformation <- function(data, type,
-                                   alpha = 0.85,
-                                   beta = 1,
-                                   maxval = 100,
-                                   decay = 1,
-                                   lag = 0){
-    if(is.character(data)) return(data)
-    data <- as.numeric(data)
-    
-    # Aplicamos lag y decay
-    if(lag > 0)    data <- dplyr::lag(data, lag)
-    if(decay != 1) data <- data * decay
-    
-    transformed <- switch(type,
-                          "Linear"    = data,
-                          "S Origin"  = s_curve_transform(data, shape = "s-origin",
-                                                          alpha = alpha, beta = beta,
-                                                          maxValuePct = maxval),
-                          "S Shaped"  = s_curve_transform(data, shape = "s-shaped",
-                                                          alpha = alpha, beta = beta,
-                                                          maxValuePct = maxval),
-                          "Index Exp" = exp(data / 100) * 100,
-                          "Log"       = log1p(data),
-                          "Exp"       = exp(data),
-                          "Power"     = data ^ beta,
-                          "Moving Avg"= zoo::rollmean(data, k = 3, fill = NA),
-                          data
-    )
-    return(transformed)
-  }
+  # INFORMATION TAB  --------------------------------------------------------
   
   
-  # INFORMATION TAB ---------------------------------------------------------
   
-  
-  # Presencia de medios > 0
-  output$activity_table <- renderTable({
-    req(rv$filtered_data, input$media_vars)
-    rv$filtered_data %>%
-      summarise(across(all_of(input$media_vars),
-                       ~ mean(. > 0, na.rm = TRUE) * 100)) %>%
-      pivot_longer(cols = everything(),
-                   names_to = "Variable",
-                   values_to = "Activity %")
-  })
-  
-  # Presencia del gasto > 0
-  output$spend_table <- renderTable({
-    req(rv$filtered_data, input$spend_vars)
-    total_spend <- sum(rv$filtered_data[[input$spend_vars[1]]], na.rm = TRUE)
-    if(total_spend <= 0) total_spend <- 1  # No divide entre 0
-    rv$filtered_data %>%
-      summarise(across(all_of(input$spend_vars),
-                       ~ sum(as.numeric(.), na.rm = TRUE) / total_spend * 100)) %>%
-      pivot_longer(cols = everything(),
-                   names_to = "Variable",
-                   values_to = "Spend %")
-  })
-  
-  # Porcentaje de actividad por variable
-  output$activity_percentage_table <- renderTable({
-    req(rv$filtered_data, input$media_vars)
-    total_activity <- sum(rv$filtered_data[input$media_vars], na.rm = TRUE)
-    if(total_activity <= 0) total_activity <- 1
-    rv$filtered_data %>%
-      summarise(across(all_of(input$media_vars),
-                       ~ (sum(., na.rm = TRUE) / total_activity) * 100)) %>%
-      pivot_longer(cols = everything(), names_to = "Variable",
-                   values_to = "Activity_Percentage") %>%
-      mutate(Activity_Percentage = round(Activity_Percentage, 2)) %>%
-      select(Variable, Activity_Percentage)
-  })
-  
-  # Porcentaje de gasto por variable
-  output$spend_percentage_table <- renderTable({
-    req(rv$filtered_data, input$spend_vars)
-    total_spend <- sum(rv$filtered_data[input$spend_vars], na.rm = TRUE)
-    if(total_spend <= 0) total_spend <- 1
-    rv$filtered_data %>%
-      summarise(across(all_of(input$spend_vars),
-                       ~ (sum(., na.rm = TRUE) / total_spend) * 100)) %>%
-      pivot_longer(cols = everything(), names_to = "Variable",
-                   values_to = "Spend_Percentage") %>%
-      mutate(Spend_Percentage = round(Spend_Percentage, 2)) %>%
-      select(Variable, Spend_Percentage)
-  })
-  
-  output$cpm_cpc <- renderTable({
+  # Consolidar métricas en una sola tabla
+  output$consolidated_table <- renderTable({
     req(rv$filtered_data, input$media_vars, input$spend_vars)
+    
     total_activity <- rv$filtered_data %>%
       summarise(across(all_of(input$media_vars), ~ sum(., na.rm = TRUE))) %>%
       pivot_longer(cols = everything(), names_to = "Variable", values_to = "Activity")
-
+    
     total_spend <- rv$filtered_data %>%
       summarise(across(all_of(input$spend_vars), ~ sum(., na.rm = TRUE))) %>%
       pivot_longer(cols = everything(), names_to = "Variable", values_to = "Spend")
-
-    combined_stats <- total_activity %>%
-      mutate(Spend = total_spend$Spend) %>%
-      mutate(CPM_CPC = ifelse(Activity > 0,
-                              round((Spend / Activity) * 1000, 2),
-                              NA))
-    combined_stats
+    
+    consolidated_stats <- total_activity %>%
+      left_join(total_spend, by = "Variable") %>%
+      mutate(
+        Activity_Distribution = round(Activity / sum(Activity, na.rm = TRUE) * 100, 2),
+        Spend_Distribution = round(Spend / sum(Spend, na.rm = TRUE) * 100, 2),
+        CPC_CPM = ifelse(Activity > 0, round((Spend / Activity) * 1000, 2), NA),
+        Type = ifelse(grepl("RAG", Variable, ignore.case = TRUE), "RAG", "NoRAG")
+      ) %>%
+      select(Variable, Type, Activity, Spend, Activity_Distribution, Spend_Distribution, CPC_CPM)
+    
+    return(consolidated_stats)
   })
   
-  # output$cpm_cpc <- renderTable({
-  #   req(rv$filtered_data(), input$media_vars, input$spend_vars)
-  #   
-  #   # Identificar las variables comunes entre `media_vars` y `spend_vars`
-  #   common_vars <- intersect(input$media_vars, input$spend_vars)
-  #   if (length(common_vars) == 0) {
-  #     return(data.frame(Variable = character(), Activity = numeric(), Spend = numeric(), CPC = numeric(), CPM = numeric()))
-  #   }
-  #   
-  #   # Calcular actividad total para las variables comunes
-  #   total_activity <- rv$filtered_data() %>%
-  #     summarise(across(all_of(common_vars), ~ sum(., na.rm = TRUE))) %>%
-  #     pivot_longer(cols = everything(), names_to = "Variable", values_to = "Activity")
-  #   
-  #   # Calcular gasto total para las variables comunes
-  #   total_spend <- rv$filtered_data() %>%
-  #     summarise(across(all_of(common_vars), ~ sum(., na.rm = TRUE))) %>%
-  #     pivot_longer(cols = everything(), names_to = "Variable", values_to = "Spend")
-  #   
-  #   # Combinar actividad y gasto
-  #   combined_stats <- total_activity %>%
-  #     left_join(total_spend, by = "Variable") %>%
-  #     mutate(
-  #       CPC = ifelse(Activity > 0, round(Spend / Activity, 2), NA),
-  #       CPM = ifelse(Activity > 0, round((Spend / Activity) * 1000, 2), NA)
-  #     )
-  #   
-  #   combined_stats
-  # })
-  
-  # DOWNLOAD CPM/CPC
-  output$download_cpm_cpc <- downloadHandler(
+  # Descargar tabla consolidada
+  output$download_consolidated <- downloadHandler(
     filename = function() {
-      paste("CPM_CPC_Table", Sys.Date(), ".csv", sep = "")
+      paste("Consolidated_Table", Sys.Date(), ".csv", sep = "")
     },
-    content = function(file){
+    content = function(file) {
       req(rv$filtered_data, input$media_vars, input$spend_vars)
       
       total_activity <- rv$filtered_data %>%
@@ -271,15 +146,20 @@ server <- function(input, output, session) {
         summarise(across(all_of(input$spend_vars), ~ sum(., na.rm = TRUE))) %>%
         pivot_longer(cols = everything(), names_to = "Variable", values_to = "Spend")
       
-      combined_stats <- total_activity %>%
-        mutate(Spend = total_spend$Spend) %>%
-        mutate(CPM_CPC = ifelse(Activity > 0,
-                                round((Spend / Activity) * 1000, 2),
-                                NA))
+      consolidated_stats <- total_activity %>%
+        left_join(total_spend, by = "Variable") %>%
+        mutate(
+          Activity_Distribution = round(Activity / sum(Activity, na.rm = TRUE) * 100, 2),
+          Spend_Distribution = round(Spend / sum(Spend, na.rm = TRUE) * 100, 2),
+          CPC_CPM = ifelse(Activity > 0, round((Spend / Activity) * 1000, 2), NA),
+          Type = ifelse(grepl("RAG", Variable, ignore.case = TRUE), "RAG", "NoRAG")
+        ) %>%
+        select(Variable, Type, Activity, Spend, Activity_Distribution, Spend_Distribution, CPC_CPM)
       
-      write.csv(combined_stats, file, row.names = FALSE)
+      write.csv(consolidated_stats, file, row.names = FALSE)
     }
   )
+  
   
   # UNIVARIATE TAB ----------------------------------------------------------
   
@@ -434,7 +314,7 @@ server <- function(input, output, session) {
             titleX = TRUE, titleY = TRUE) %>%
       layout(title = "S-Curve EDA")
   })
-
+  
   # MULTIVARIATE TAB --------------------------------------------------------
   
   output$variables_chart_multi <- renderPlot({
@@ -640,6 +520,98 @@ server <- function(input, output, session) {
       layout(title = "S-Curve EDA Multivariado")
   })
   
+  # INFORMATION TAB 2 ---------------------------------------------------------
+  
+  # Lectura del archivo y procesamiento inicial
+  observeEvent(input$file, {
+    req(input$file)
+    ext <- tools::file_ext(input$file$name)
+    
+    if (ext == "csv") {
+      rv$filtered_data <- read.csv(input$file$datapath, stringsAsFactors = FALSE)
+    } else if (ext == "RData") {
+      load(input$file$datapath)
+      rv$filtered_data <- get(ls()[1])  # Asume que el primer objeto cargado es el data frame
+    }
+    
+    # Validar que "Period" esté en los datos
+    if ("Period" %in% colnames(rv$filtered_data)) {
+      rv$period_column <- "Period"
+    } else {
+      rv$period_column <- NULL
+    }
+  })
+  
+  # Mostrar información sobre el archivo cargado
+  output$file_info <- renderText({
+    req(rv$filtered_data)
+    if (!is.null(rv$period_column)) {
+      paste("Temporal Dimension: ", rv$period_column)
+    } else {
+      "No 'Period' column found in the dataset."
+    }
+  })
+  
+  # Consolidar métricas en una sola tabla
+  output$consolidated_table <- renderTable({
+    req(rv$filtered_data, input$media_vars, input$spend_vars)
+    
+    # Actividad y gasto totales
+    total_activity <- rv$filtered_data %>%
+      summarise(across(all_of(input$media_vars), ~ sum(., na.rm = TRUE))) %>%
+      pivot_longer(cols = everything(), names_to = "Variable", values_to = "Activity")
+    
+    total_spend <- rv$filtered_data %>%
+      summarise(across(all_of(input$spend_vars), ~ sum(., na.rm = TRUE))) %>%
+      pivot_longer(cols = everything(), names_to = "Variable", values_to = "Spend")
+    
+    # Distribuciones y métricas adicionales
+    total_activity <- total_activity %>%
+      mutate(Activity_Distribution = round(Activity / sum(Activity, na.rm = TRUE) * 100, 2))
+    
+    total_spend <- total_spend %>%
+      mutate(Spend_Distribution = round(Spend / sum(Spend, na.rm = TRUE) * 100, 2))
+    
+    # Consolidar en una tabla
+    consolidated_stats <- total_activity %>%
+      left_join(total_spend, by = "Variable") %>%
+      mutate(
+        CPM_CPC = ifelse(Activity > 0, round((Spend / Activity) * 1000, 2), NA),
+        Type = ifelse(grepl("RAG", Variable), "RAG", "NoRAG")
+      ) %>%
+      select(Variable, Type, Activity, Spend, Activity_Distribution, Spend_Distribution, CPM_CPC)
+    
+    consolidated_stats
+  })
+  
+  # Descargar tabla consolidada
+  output$download_consolidated <- downloadHandler(
+    filename = function() {
+      paste("Consolidated_Table", Sys.Date(), ".csv", sep = "")
+    },
+    content = function(file) {
+      req(rv$filtered_data, input$media_vars, input$spend_vars)
+      
+      total_activity <- rv$filtered_data %>%
+        summarise(across(all_of(input$media_vars), ~ sum(., na.rm = TRUE))) %>%
+        pivot_longer(cols = everything(), names_to = "Variable", values_to = "Activity")
+      
+      total_spend <- rv$filtered_data %>%
+        summarise(across(all_of(input$spend_vars), ~ sum(., na.rm = TRUE))) %>%
+        pivot_longer(cols = everything(), names_to = "Variable", values_to = "Spend")
+      
+      consolidated_stats <- total_activity %>%
+        left_join(total_spend, by = "Variable") %>%
+        mutate(
+          Activity_Distribution = round(Activity / sum(Activity, na.rm = TRUE) * 100, 2),
+          Spend_Distribution = round(Spend / sum(Spend, na.rm = TRUE) * 100, 2),
+          CPM_CPC = ifelse(Activity > 0, round((Spend / Activity) * 1000, 2), NA),
+          Type = ifelse(grepl("RAG", Variable), "RAG", "NoRAG")
+        ) %>%
+        select(Variable, Type, Activity, Spend, Activity_Distribution, Spend_Distribution, CPM_CPC)
+      
+      write.csv(consolidated_stats, file, row.names = FALSE)
+    })
   
   # DOWNLOAD FILTERED ANALYTICAL --------------------------------------------
   
