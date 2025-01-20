@@ -1,5 +1,3 @@
-# ui.R
-
 library(shiny)
 library(shinythemes)
 library(plotly)
@@ -39,224 +37,164 @@ ui <- fluidPage(
       )
   ),
   
+  # En lugar de un sidebarLayout fijo, usamos un layout condicional:
+  # - Si estamos en la pestaña 'Información', mostramos Data Management a la izquierda.
+  # - En las demás pestañas, ocultamos el panel lateral y usamos el espacio completo.
+  
   navbarPage(
     id = "main-tabs",
     title = NULL,
     theme = shinytheme("flatly"),
     
-    
-    # Information Tab ---------------------------------------------------------
-    
-    tabPanel("Information",
-             fluidPage(
-               # Data Management Section
-               div(class = "data-management-panel custom-panel",
-                   style = "background-color: #f1f1f1; padding: 20px; margin-bottom: 20px; border-radius: 8px; border: 1px solid #ddd;",
-                   
-                   h4("Data Management", class = "section-title", style = "font-weight: bold; color: #333;"),
-                   div(style = "margin-bottom: 20px;",
-                       fileInput("file", "Upload Analytical",
-                                 accept = c(".csv", ".RData"),
-                                 buttonLabel = "Browse...",
-                                 placeholder = "No file selected"),
-                       tags$small("Supported formats: CSV, RData", class = "text-muted")
-                   ),
-                   
-                   dateRangeInput(
-                     "date_range_filter",
-                     "Select Date Range:",
-                     start = Sys.Date() - 30,
-                     end = Sys.Date(),
-                     format = "yyyy-mm-dd"
-                   ),
-                   
-                   div(style = "margin-bottom: 20px;",
-                       h4("Variable Configuration", class = "section-title", style = "font-weight: bold; color: #333;"),
-                       selectInput("kpi", "Select KPI", choices = NULL),
-                       selectInput("media_vars", "Select Media Variables", choices = NULL, multiple = TRUE),
-                       selectInput("spend_vars", "Select Spend Variables", choices = NULL, multiple = TRUE),
-                       selectInput("base_vars", "Select Base Variables", choices = NULL, multiple = TRUE)
-                   )
-               ),
-               
-               # Dimensions Section
-               div(class = "dimension-panel custom-panel",
-                   style = "background-color: #ffffff; padding: 20px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 20px;",
-                   
-                   h4("File Information and Configuration", class = "section-title", style = "font-weight: bold; color: #333;"),
-                   
-                   div(style = "margin-bottom: 15px;",
-                       h5(tags$b("Temporal Dimension:"), style = "font-size: 16px; margin-bottom: 5px;"),
-                       textOutput("file_info")
-                   ),
-                   
-                   div(style = "margin-bottom: 15px;",
-                       h5(tags$b("Cross-Sectional Dimension:"), style = "font-size: 16px; margin-bottom: 5px;"),
-                       checkboxGroupInput("cross_sectional_dimension", NULL,
-                                          choices = c("Geography", "Product", "Campaign", "Outlet", "Creative"),
-                                          inline = FALSE)
-                   )
-               ),
-               
-               # Consolidated Table Section
-               div(class = "main-panel custom-panel",
-                   style = "background-color: #ffffff; padding: 20px; border: 1px solid #ddd; border-radius: 8px;",
-                   
-                   h4("Consolidated Table", class = "section-title", style = "font-weight: bold; color: #333;"),
-                   tableOutput("consolidated_table"),
-                   div(class = "text-right mt-3",
-                       downloadButton("download_consolidated", "Download Consolidated Table", class = "custom-download-btn"))
-               )
-             )
+    # Pestaña INFORMACIÓN (única pestaña con Data Management visible)
+    tabPanel(
+      "Information",
+      fluidPage(
+        # Data Management en la parte superior
+        fluidRow(
+          column(
+            width = 12,
+            wellPanel(
+              h4("Data Management", class = "section-title"),
+              div(
+                title = "Upload your analytical file (CSV or RData format)",
+                fileInput(
+                  "file",
+                  "Upload Analytical",
+                  accept = c(".csv", ".RData"),
+                  buttonLabel = "Browse...",
+                  placeholder = "No file selected"
+                )
+              ),
+              tags$small("Supported formats: CSV, RData", class = "text-muted"),
+              
+              # Selector de Fecha
+              dateRangeInput(
+                "date_range_filter",
+                "Select Date Range:",
+                start = Sys.Date() - 30,
+                end = Sys.Date(),
+                format = "yyyy-mm-dd"
+              ),
+              
+              # Variables principales (KPI, media, spend, etc.)
+              div(
+                h4("Variable Configuration", class = "section-title"),
+                div(
+                  title = "Select the main KPI for analysis",
+                  selectInput("kpi", "Select KPI", choices = NULL)
+                ),
+                div(
+                  title = "Select one or more media variables",
+                  selectInput("media_vars", "Select Media Variables",
+                              choices = NULL,
+                              multiple = TRUE)
+                ),
+                div(
+                  title = "Select one or more spend variables",
+                  selectInput("spend_vars", "Select Spend Variables",
+                              choices = NULL,
+                              multiple = TRUE)
+                ),
+                div(
+                  title = "Select one or more base variables",
+                  selectInput("base_vars", "Select Base Variables",
+                              choices = NULL,
+                              multiple = TRUE)
+                )
+              ),
+              
+              # Botón de descarga
+              div(
+                downloadButton(
+                  "download_analytical",
+                  "Download Analytical",
+                  class = "custom-download-btn btn-block"
+                )
+              )
+            )
+          )
+        ),
+        
+        # Tabla de Consolidated Summary debajo
+        fluidRow(
+          column(
+            width = 12,
+            wellPanel(
+              h4("File Information and Configuration", class = "section-title"),
+              p("Temporal Dimension:"),
+              checkboxGroupInput(
+                "temporal_dimension",
+                NULL,
+                choices = c(
+                  "Geography",
+                  "Product",
+                  "Campaign",
+                  "Outlet",
+                  "Creative"
+                )
+              )
+            )
+          )
+        ),
+        
+        fluidRow(
+          column(
+            width = 12,
+            wellPanel(
+              h4("Consolidated Table", class = "section-title"),
+              tableOutput("consolidated_table"), # Output de tabla consolidada
+              div(
+                class = "text-right mt-3",
+                downloadButton(
+                  "download_consolidated",
+                  "Download Consolidated Table",
+                  class = "custom-download-btn"
+                )
+              )
+            )
+          )
+        )
+      )
     ),
     
-    # # Pestaña INFORMACIÓN 2
-    # tabPanel("Information 2",
-    #          fluidPage(
-    #            # Panel horizontal grande para Data Management
-    #            div(class = "data-management-panel custom-panel",
-    #                style = "background-color: #f1f1f1; padding: 20px; margin-bottom: 20px; border-radius: 8px; border: 1px solid #ddd; width: 100%;",
-    #                
-    #                # Barra larga para Upload Analytical
-    #                div(style = "margin-bottom: 20px; width: 100%;",
-    #                    h4("Data Management", class = "section-title", style = "font-weight: bold; color: #333;"),
-    #                    fileInput("file", "Upload Analytical",
-    #                              accept = c(".csv", ".RData"),
-    #                              buttonLabel = "Browse...",
-    #                              placeholder = "No file selected",
-    #                              width = "100%"),
-    #                    tags$small("Supported formats: CSV, RData", class = "text-muted", style = "font-size: 12px;")
-    #                ),
-    #                
-    #                # Selector de Fecha debajo
-    #                div(style = "margin-bottom: 20px; width: 100%;",
-    #                    div(style = "margin-top: 10px;",
-    #                        dateRangeInput(
-    #                          "date_range_filter",
-    #                          "Select Date Range:",
-    #                          start = Sys.Date() - 30,   
-    #                          end = Sys.Date(),          
-    #                          format = "yyyy-mm-dd",
-    #                          width = "100%"
-    #                        )
-    #                    )
-    #                ),
-    #                
-    #                # Variable Configuration debajo
-    #                div(style = "margin-bottom: 20px; width: 100%;",
-    #                    h4("Variable Configuration", class = "section-title", style = "font-weight: bold; color: #333;"),
-    #                    div(style = "margin-bottom: 10px;",
-    #                        selectInput("kpi", "Select KPI", choices = NULL, width = "100%")
-    #                    ),
-    #                    div(style = "margin-bottom: 10px;",
-    #                        selectInput("media_vars", "Select Media Variables",
-    #                                    choices = NULL,
-    #                                    multiple = TRUE,
-    #                                    width = "100%")
-    #                    ),
-    #                    div(style = "margin-bottom: 10px;",
-    #                        selectInput("spend_vars", "Select Spend Variables",
-    #                                    choices = NULL,
-    #                                    multiple = TRUE,
-    #                                    width = "100%")
-    #                    )
-    #                )
-    #            ),
-    #            
-    #            # Sección de Dimensiones (Temporal y Transversal)
-    #            div(class = "dimension-panel custom-panel",
-    #                style = "background-color: #ffffff; padding: 20px; border: 1px solid #ddd; border-radius: 5px; width: 100%;",
-    #                h4("File Information and Configuration", class = "section-title", style = "font-weight: bold; color: #333;"),
-    #                
-    #                # Temporal Dimension
-    #                div(style = "margin-bottom: 15px;",
-    #                    h5(tags$b("Temporal Dimension:"), style = "font-size: 16px; margin-bottom: 5px;"),
-    #                    tags$p("Period", style = "font-size: 16px; margin-left: 10px;")
-    #                ),
-    #                
-    #                # Cross-Sectional Dimension
-    #                div(style = "margin-bottom: 15px;",
-    #                    h5(tags$b("Cross Dimension:"), style = "font-size: 16px; margin-bottom: 5px;"),
-    #                    checkboxGroupInput("cross_sectional_dimension", NULL,
-    #                                       choices = c("Geography", "Product", "Campaign", "Outlet", "Creative"),
-    #                                       inline = FALSE,
-    #                                       width = "100%")
-    #                )
-    #            ),
-    #            
-    #            # Panel principal con la tabla consolidada
-    #            div(class = "main-panel custom-panel",
-    #                style = "background-color: #ffffff; padding: 20px; border: 1px solid #ddd; border-radius: 5px; width: 100%;",
-    #                fluidRow(
-    #                  column(12,
-    #                         div(class = "info-box",
-    #                             h4("Consolidated Table", class = "box-title"),
-    #                             tableOutput("consolidated_table"),
-    #                             div(class = "text-right mt-3",
-    #                                 downloadButton("download_consolidated",
-    #                                                "Download Consolidated Table",
-    #                                                class = "custom-download-btn"))
-    #                         )
-    #                  )
-    #                )
-    #            )
-    #          )
-    # ),
+    
+    
+    
     
     # Tab UNIVARIATE (sin sidebar, ocupamos todo el ancho)
     tabPanel("Univariate",
              fluidPage(
-               
-               # Sección de Filtros
-               div(class = "filters-section",
-                   style = "background-color: #f8f9fa; border: 1px solid #ddd; border-radius: 5px; padding: 15px; margin-bottom: 20px;",
-                   h4("Global Filters", style = "margin-bottom: 15px;"),
-                   fluidRow(
-                     column(2, div(class = "custom-select-container",
-                                   selectInput("geography", "Geography", choices = c("All/Total")))),
-                     column(2, div(class = "custom-select-container",
-                                   selectInput("product", "Product", choices = c("All/Total")))),
-                     column(2, div(class = "custom-select-container",
-                                   selectInput("campaign", "Campaign", choices = c("Total")))),
-                     column(2, div(class = "custom-select-container",
-                                   selectInput("outlet", "Outlet", choices = c("Total")))),
-                     column(2, div(class = "custom-select-container",
-                                   selectInput("creative", "Creative", choices = c("Total"))))
+               # Panel superior para Geography, Product, Campaign, Outlet, Creative
+               fluidPage(
+                 fluidRow(
+                   column(12,
+                          wellPanel(
+                            h4("Global Filters", class = "section-title"),
+                            fluidRow(
+                              # Geography dinámico
+                              column(2,
+                                     selectInput("geography_univ", "Geography", choices = NULL)  # Lista inicial vacía
+                              ),
+                              # Las demás opciones quedan estáticas por ahora
+                              column(2,
+                                     selectInput("product_univ", "Product", choices = c("Product A", "Product B", "Product C"))
+                              ),
+                              column(2,
+                                     selectInput("campaign_univ", "Campaign", choices = c("Campaign 1", "Campaign 2", "Campaign 3"))
+                              ),
+                              column(2,
+                                     selectInput("outlet_univ", "Outlet", choices = c("Outlet X", "Outlet Y", "Outlet Z"))
+                              ),
+                              column(2,
+                                     selectInput("creative_univ", "Creative", choices = c("Creative 1", "Creative 2", "Creative 3"))
+                              )
+                            )
+                          )
                    )
+                 )
                ),
-               
-               
-               # # Panel superior para Geography, Product, Campaign, Outlet, Creative
-               # fluidPage(
-               #   fluidRow(
-               #     column(12,
-               #            wellPanel(
-               #              h4("Global Filters", class = "section-title"),
-               #              fluidRow(
-               #                # Geography dinámico
-               #                column(2,
-               #                       selectInput("geography_univ", "Geography", choices = NULL)  # Lista inicial vacía
-               #                ),
-               #                # Las demás opciones quedan estáticas por ahora
-               #                column(2,
-               #                       selectInput("product_univ", "Product", choices = c("Product A", "Product B", "Product C"))
-               #                ),
-               #                column(2,
-               #                       selectInput("campaign_univ", "Campaign", choices = c("Campaign 1", "Campaign 2", "Campaign 3"))
-               #                ),
-               #                column(2,
-               #                       selectInput("outlet_univ", "Outlet", choices = c("Outlet X", "Outlet Y", "Outlet Z"))
-               #                ),
-               #                column(2,
-               #                       selectInput("creative_univ", "Creative", choices = c("Creative 1", "Creative 2", "Creative 3"))
-               #                )
-               #              )
-               #            )
-               #     )
-               #   )
-               # ),
-               
-               # Transformation
+               # Transformaciones, boxplot, etc.
                fluidRow(
                  column(12,
                         wellPanel(
@@ -330,13 +268,16 @@ ui <- fluidPage(
                               ),
                               column(6,
                                      div(class = "chart-box",
-                                         h4("Applied transformation", class = "chart-title"),
+                                         h4("Transformaciones Aplicadas", class = "chart-title"),
                                          # Aquí simplemente mostramos un texto o tabla con la explicación
                                          verbatimTextOutput("transformations_summary_univ")
                                      )
                               )
                             ),
                             
+                            # Curva S condicional: solo si "S Origin" (o "S Shaped") 
+                            # y si realmente la queremos mostrar.
+                            # Por ejemplo, si la fuente de datos es S Origin, 
                             conditionalPanel(
                               condition = "input.transformation_univ == 'S Origin'",
                               fluidRow(
@@ -355,7 +296,7 @@ ui <- fluidPage(
     ),
     
     # Tab MULTIVARIATE (sin sidebar)
-    tabPanel("Multivariate",
+    tabPanel("Multivariado",
              fluidPage(
                fluidRow(
                  column(3,
@@ -387,7 +328,6 @@ ui <- fluidPage(
                           )
                         )
                  ),
-                 
                  column(9,
                         div(class = "analysis-content",
                             conditionalPanel(
