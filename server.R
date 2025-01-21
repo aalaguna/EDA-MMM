@@ -21,6 +21,45 @@ server <- function(input, output, session) {
     filtered_data = NULL
   )
   
+  
+  # 0. Temporal and Cross Sectional Dimension -------------------------------
+  
+  # Mostrar el nombre de Temporal Dimension como texto (solo muestra Period si existe)
+  output$temporal_dimension_ui <- renderUI({
+    req(rv$data)
+    
+    # Detectar si existe una columna llamada "Period" (insensible a mayúsculas)
+    temporal_columns <- names(rv$data)[tolower(names(rv$data)) == "period"]
+    
+    if (length(temporal_columns) > 0) {
+      # Mostrar "Period" si está presente
+      div("Period")
+    } else {
+      # Mensaje si no se encuentra la columna Period
+      div("No temporal dimension found in the dataset.")
+    }
+  })
+  
+  # Validar las opciones de Cross Sectional Dimension
+  observe({
+    req(rv$data)
+    
+    # Palabras clave permitidas
+    valid_keywords <- c("Geography", "Product", "Campaign", "Outlet", "Creative")
+    
+    # Filtrar columnas válidas: Solo las que coincidan exactamente con las palabras clave
+    available_columns <- names(rv$data) %>%
+      .[ . %in% valid_keywords ]  # Solo las columnas que sean exactamente igual a las palabras clave
+    
+    # Actualizar el checkbox con columnas válidas
+    updateCheckboxGroupInput(
+      session,
+      "cross_sectional_dimension",
+      choices = available_columns,
+      selected = NULL
+    )
+  })
+  
   # 1. Carga de datos ---------------------------------------
   loaded_data <- reactive({
     req(input$file)

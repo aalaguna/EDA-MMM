@@ -38,8 +38,8 @@ ui <- fluidPage(
   ),
   
   # En lugar de un sidebarLayout fijo, usamos un layout condicional:
-  # - Si estamos en la pestaña 'Información', mostramos Data Management a la izquierda.
-  # - En las demás pestañas, ocultamos el panel lateral y usamos el espacio completo.
+  # - Si estamos en la pestaña 'Información', mostramos Data Management en la parte superior.
+  # - En las demás pestañas, ocultamos el panel y usamos el espacio completo.
   
   navbarPage(
     id = "main-tabs",
@@ -116,22 +116,28 @@ ui <- fluidPage(
           )
         ),
         
-        # Tabla de Consolidated Summary debajo
+        
+        # Configuration and file information --------------------------------------
+        
         fluidRow(
           column(
             width = 12,
             wellPanel(
               h4("File Information and Configuration", class = "section-title"),
-              p("Temporal Dimension:"),
-              checkboxGroupInput(
-                "temporal_dimension",
-                NULL,
-                choices = c(
-                  "Geography",
-                  "Product",
-                  "Campaign",
-                  "Outlet",
-                  "Creative"
+              
+              # Temporal Dimension
+              div(
+                strong("Temporal Dimension:"), # Texto en negrilla
+                uiOutput("temporal_dimension_ui") # Aquí se renderiza el texto dinámico
+              ),
+              
+              # Cross Sectional Dimension
+              div(
+                strong("Cross Sectional Dimension:"), # Texto en negrilla
+                checkboxGroupInput(
+                  "cross_sectional_dimension",
+                  NULL,
+                  choices = NULL # Se actualizará dinámicamente
                 )
               )
             )
