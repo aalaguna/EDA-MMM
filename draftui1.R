@@ -148,15 +148,12 @@ ui <- fluidPage(
           column(
             width = 12,
             wellPanel(
-              h4("Consolidated Table", class = "section-title"),
-              tableOutput("consolidated_table"), # Output de tabla consolidada
-              div(
-                class = "text-right mt-3",
-                downloadButton(
-                  "download_consolidated",
-                  "Download Consolidated Table",
-                  class = "custom-download-btn"
-                )
+              h4("Consolidated Summary", class = "section-title"),
+              tableOutput("consolidated_table"),
+              downloadButton(
+                "download_consolidated",
+                label = "Download Consolidated Table",
+                class = "btn-primary"
               )
             )
           )

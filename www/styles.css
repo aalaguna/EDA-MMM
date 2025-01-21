@@ -259,3 +259,14 @@ td {
     border-radius: 4px;
     background-color: rgba(231, 76, 60, 0.1);
 }
+
+tags$style(HTML("
+  .multicol-checkbox {
+    -webkit-column-count: 4; /* Chrome, Safari, Opera */
+    -moz-column-count: 4;    /* Firefox */
+    column-count: 4;
+    -webkit-column-gap: 20px;
+    -moz-column-gap: 20px;
+    column-gap: 20px;
+  }
+"))
