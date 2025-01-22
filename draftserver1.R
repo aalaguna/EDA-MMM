@@ -157,41 +157,42 @@ server <- function(input, output, session) {
   })
   
   
-  # Función genérica de transformación
-  apply_transformation <- function(data, type,
-                                   alpha = 0.85,
-                                   beta = 1,
-                                   maxval = 100,
-                                   decay = 1,
-                                   lag = 0){
-    if(is.character(data)) return(data)
-    data <- as.numeric(data)
+  # 3. Filtros Globales -----------------------------------------------------
+  
+  # Bloque para el filtro de Geography
+  observe({
+    req(rv$data)  
+    geography_column <- "Geography"  
     
-    # Aplicamos lag y decay
-    if(lag > 0)    data <- dplyr::lag(data, lag)
-    if(decay != 1) data <- data * decay
-    
-    transformed <- switch(type,
-                          "Linear"    = data,
-                          "S Origin"  = s_curve_transform(data, shape = "s-origin",
-                                                          alpha = alpha, beta = beta,
-                                                          maxValuePct = maxval),
-                          "S Shaped"  = s_curve_transform(data, shape = "s-shaped",
-                                                          alpha = alpha, beta = beta,
-                                                          maxValuePct = maxval),
-                          "Index Exp" = exp(data / 100) * 100,
-                          "Log"       = log1p(data),
-                          "Exp"       = exp(data),
-                          "Power"     = data ^ beta,
-                          "Moving Avg"= zoo::rollmean(data, k = 3, fill = NA),
-                          data
-    )
-    return(transformed)
-  }
+    # Actualizar las opciones del filtro Geography basado en los datos cargados
+    if (geography_column %in% names(rv$data)) {
+      updateSelectInput(session, "geography_univ",
+                        choices = unique(rv$data[[geography_column]]),
+                        selected = unique(rv$data[[geography_column]])[1])
+    } else {
+      showNotification("The 'Geography' column was not found in the dataset.", type = "warning")
+    }
+  })
+  
+  # Filtrado de los datos basado en la selección de Geography
+  filtered_geography_data <- reactive({
+    req(rv$data, input$geography_univ)  # Ensure data and input exist
+    rv$data %>% filter(Geography == input$geography_univ)
+  })
+  
+  # Observador para validar el filtrado (puedes usarlo para depuración o mensajes)
+  observe({
+    req(filtered_geography_data())
+    if (nrow(filtered_geography_data()) == 0) {
+      showNotification("No data available for the selected geography.", type = "warning")
+    } else {
+      showNotification("Data successfully filtered by Geography.", type = "message")
+    }
+  })
   
   
   # # INFORMATION TAB ---------------------------------------------------------
-
+  
   consolidated_table <- reactive({
     req(rv$filtered_data, input$media_vars)
     
@@ -318,118 +319,156 @@ server <- function(input, output, session) {
     }
   )
   
-  
   # UNIVARIATE TAB ----------------------------------------------------------
   
   
   # 1. Variable Flighting
   output$variable_flighting_chart <- renderPlotly({
-    req(rv$filtered_data, input$variable_univ)
+    req(filtered_geography_data(), input$kpi_univ, input$variable_univ)
     
-    date_col <- if("Period" %in% names(rv$filtered_data)) {
+    # Identificar la columna de fecha
+    date_col <- if ("Period" %in% names(filtered_geography_data())) {
       "Period"
-    } else if("periodo" %in% names(rv$filtered_data)) {
+    } else if ("periodo" %in% names(filtered_geography_data())) {
       "periodo"
     } else {
       NULL
     }
-    req(date_col, input$variable_univ)
+    req(date_col)  # Asegúrate de que existe la columna de fecha
     
-    p <- ggplot(rv$filtered_data,
-                aes_string(x = date_col, y = input$variable_univ)) +
-      geom_line(color = "blue") +
-      theme_minimal() +
-      labs(title = "Variable Flighting Over Time",
-           x = "Time",
-           y = input$variable_univ)
+    # Filtrar las columnas necesarias
+    data_to_plot <- filtered_geography_data() %>%
+      select(!!sym(date_col), KPI = !!sym(input$kpi_univ), Variable = !!sym(input$variable_univ))
     
-    ggplotly(p)
+    # Verificar si hay datos suficientes
+    validate(
+      need(nrow(data_to_plot) > 0, "No data available to plot.")
+    )
+    
+    # Crear el gráfico con dos ejes Y
+    plot_ly(data_to_plot) %>%
+      add_lines(x = ~get(date_col), y = ~KPI, name = "KPI", line = list(color = 'blue')) %>%
+      add_lines(x = ~get(date_col), y = ~Variable, name = "Variable", yaxis = "y2", line = list(color = 'red')) %>%
+      layout(
+        title = paste("KPI and Variable Over Time for Geography:", input$geography_univ),
+        xaxis = list(title = "Time"),
+        yaxis = list(title = "KPI", side = "left"),
+        yaxis2 = list(title = "Variable", overlaying = "y", side = "right"),
+        legend = list(orientation = "h", x = 0.3, y = -0.2)
+      )
   })
   
   # 2. Variable Trans
   output$var_transf_chart <- renderPlotly({
-    req(rv$filtered_data, input$variable_univ, input$transformation_univ)
+    req(filtered_geography_data(), input$variable_univ, input$transformation_univ)
     
     var_name <- input$variable_univ
-    transformed_data <- apply_transformation(
-      rv$filtered_data[[var_name]],
-      type   = input$transformation_univ,
-      alpha  = input$alpha_univ,
-      beta   = input$beta_univ,
-      maxval = input$maxval_univ,
-      decay  = input$decay_univ,
-      lag    = input$lag_univ
-    )
     
-    df_trans <- rv$filtered_data %>%
+    # Transformación Lineal o Aplicación de Transformaciones
+    if (input$transformation_univ == "Linear") {
+      transformed_data <- filtered_geography_data()[[var_name]]
+    } else {
+      transformed_data <- apply_transformation(
+        filtered_geography_data()[[var_name]],
+        type   = input$transformation_univ,
+        alpha  = input$alpha_univ,
+        beta   = input$beta_univ,
+        maxval = input$maxval_univ,
+        decay  = input$decay_univ,
+        lag    = input$lag_univ
+      )
+    }
+    
+    # Crear un dataframe con los datos transformados
+    df_trans <- filtered_geography_data() %>%
       mutate(Transformed = transformed_data)
     
-    date_col <- if("Period" %in% names(rv$filtered_data)) "Period" else "periodo"
+    # Identificar la columna de fecha
+    date_col <- if ("Period" %in% names(filtered_geography_data())) "Period" else "periodo"
+    req(date_col)
     
+    # Crear el gráfico
     p <- ggplot(df_trans, aes_string(x = date_col, y = "Transformed")) +
       geom_line(color = "red") +
       theme_minimal() +
-      labs(title = paste("Transformed Variable:", var_name),
-           x = "Time",
-           y = "Transformed Value")
+      labs(
+        title = paste("Transformed Variable for Geography:", input$geography_univ),
+        x = "Time",
+        y = "Transformed Value"
+      )
     
     ggplotly(p)
   })
   
+  
   # 3. Boxplot 
   output$boxplot_univ <- renderPlot({
-    req(rv$filtered_data, input$variable_univ)
-    box_data <- rv$filtered_data[[input$variable_univ]]
+    req(filtered_geography_data(), input$variable_univ)
+    
+    box_data <- filtered_geography_data()[[input$variable_univ]]
     box_data <- box_data[!is.na(box_data)]
     
-    if(length(box_data) < 1){
-      showNotification("No hay datos suficientes para el boxplot.", type = "error")
+    if (length(box_data) < 1) {
+      showNotification("Not enough data available for the boxplot.", type = "error")
       return(NULL)
     }
     
     ggplot(data.frame(val = box_data), aes(x = "", y = val)) +
       geom_boxplot(fill = "skyblue") +
       theme_minimal() +
-      labs(x = "", y = input$variable_univ)
+      labs(
+        title = paste("Boxplot for Geography:", input$geography_univ),
+        x = "",
+        y = input$variable_univ
+      )
   })
   
   # 4. Texto con transformaciones aplicadas
   output$transformations_summary_univ <- renderPrint({
-    req(input$transformation_univ)
-    cat("Transformación seleccionada:", input$transformation_univ, "\n")
-    if(input$transformation_univ %in% c("S Origin", "S Shaped")){
+    req(input$transformation_univ, filtered_geography_data(), input$variable_univ)
+    
+    # Calcular el valor máximo para el boxplot
+    box_data <- filtered_geography_data()[[input$variable_univ]]
+    box_max <- max(box_data, na.rm = TRUE)
+    
+    # Mostrar información
+    cat("Selected Transformation:", input$transformation_univ, "\n")
+    if (input$transformation_univ %in% c("S Origin", "S Shaped")) {
       cat("Alpha:", input$alpha_univ, "\n")
       cat("Beta:", input$beta_univ, "\n")
       cat("MaxVal%:", input$maxval_univ, "\n")
     }
     cat("Decay:", input$decay_univ, "\n")
     cat("Lag:", input$lag_univ, "\n")
+    cat("Max Value (Boxplot):", box_max, "\n")
+    cat("Geography Selected:", input$geography_univ, "\n")
   })
+  
   
   # 5. Curva S condicional (solo si "S Origin")
   output$s_curve_univariate_plot <- renderPlotly({
-    req(rv$filtered_data, input$variable_univ)
+    req(filtered_geography_data(), input$variable_univ)
     validate(
       need(input$transformation_univ == "S Origin",
-           "Se muestra solo si 'S Origin'.")
+           "This plot is only displayed for 'S Origin'.")
     )
     
-    var_name    <- input$variable_univ
-    alpha       <- input$alpha_univ
-    beta        <- input$beta_univ
+    var_name <- input$variable_univ
+    alpha <- input$alpha_univ
+    beta <- input$beta_univ
     max_val_pct <- input$maxval_univ
-    decay       <- input$decay_univ
-    lag         <- input$lag_univ
+    decay <- input$decay_univ
+    lag <- input$lag_univ
     
-    df_scurve <- rv$filtered_data %>%
-      mutate(Period = if("Period" %in% names(.)) as.Date(Period)
-             else if("periodo" %in% names(.)) as.Date(periodo)
+    df_scurve <- filtered_geography_data() %>%
+      mutate(Period = if ("Period" %in% names(.)) as.Date(Period)
+             else if ("periodo" %in% names(.)) as.Date(periodo)
              else as.Date(NA)) %>%
       select(Period, value = !!sym(var_name)) %>%
       filter(!is.na(Period))
     
-    if(nrow(df_scurve) == 0){
-      showNotification("No hay datos disponibles para crear la S-Curve.", type = "error")
+    if (nrow(df_scurve) == 0) {
+      showNotification("No available data for the S-Curve.", type = "error")
       return(NULL)
     }
     
@@ -443,9 +482,8 @@ server <- function(input, output, session) {
         lag         = lag,
         var_name    = var_name
       )
-    }, error = function(e){
-      showNotification(paste("Error en Flighting Chart:", e$message),
-                       type = "error")
+    }, error = function(e) {
+      showNotification(paste("Error in Flighting Chart:", e$message), type = "error")
       return(NULL)
     })
     
@@ -459,13 +497,12 @@ server <- function(input, output, session) {
         lag         = lag,
         var_name    = var_name
       )
-    }, error = function(e){
-      showNotification(paste("Error en S-Curve Chart:", e$message),
-                       type = "error")
+    }, error = function(e) {
+      showNotification(paste("Error in S-Curve Chart:", e$message), type = "error")
       return(NULL)
     })
     
-    if(is.null(flighting_plot_gg) || is.null(s_curve_plot_gg)){
+    if (is.null(flighting_plot_gg) || is.null(s_curve_plot_gg)) {
       return(NULL)
     }
     
@@ -473,8 +510,6 @@ server <- function(input, output, session) {
             titleX = TRUE, titleY = TRUE) %>%
       layout(title = "S-Curve EDA")
   })
-  
-  
   
   
   # MULTIVARIATE TAB --------------------------------------------------------
