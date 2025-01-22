@@ -156,38 +156,39 @@ server <- function(input, output, session) {
     rv$filtered_data <- df
   })
   
+
+  # 3. Filtros Globales -----------------------------------------------------
+
+  # Bloque para el filtro de Geography
+  observe({
+    req(rv$data)  
+    geography_column <- "Geography"  
+    
+    # Actualizar las opciones del filtro Geography basado en los datos cargados
+    if (geography_column %in% names(rv$data)) {
+      updateSelectInput(session, "geography_univ",
+                        choices = unique(rv$data[[geography_column]]),
+                        selected = unique(rv$data[[geography_column]])[1])
+    } else {
+      showNotification("The 'Geography' column was not found in the dataset.", type = "warning")
+    }
+  })
   
-  # Función genérica de transformación
-  apply_transformation <- function(data, type,
-                                   alpha = 0.85,
-                                   beta = 1,
-                                   maxval = 100,
-                                   decay = 1,
-                                   lag = 0){
-    if(is.character(data)) return(data)
-    data <- as.numeric(data)
-    
-    # Aplicamos lag y decay
-    if(lag > 0)    data <- dplyr::lag(data, lag)
-    if(decay != 1) data <- data * decay
-    
-    transformed <- switch(type,
-                          "Linear"    = data,
-                          "S Origin"  = s_curve_transform(data, shape = "s-origin",
-                                                          alpha = alpha, beta = beta,
-                                                          maxValuePct = maxval),
-                          "S Shaped"  = s_curve_transform(data, shape = "s-shaped",
-                                                          alpha = alpha, beta = beta,
-                                                          maxValuePct = maxval),
-                          "Index Exp" = exp(data / 100) * 100,
-                          "Log"       = log1p(data),
-                          "Exp"       = exp(data),
-                          "Power"     = data ^ beta,
-                          "Moving Avg"= zoo::rollmean(data, k = 3, fill = NA),
-                          data
-    )
-    return(transformed)
-  }
+  # Filtrado de los datos basado en la selección de Geography
+  filtered_geography_data <- reactive({
+    req(rv$data, input$geography_univ)  # Ensure data and input exist
+    rv$data %>% filter(Geography == input$geography_univ)
+  })
+  
+  # Observador para validar el filtrado (puedes usarlo para depuración o mensajes)
+  observe({
+    req(filtered_geography_data())
+    if (nrow(filtered_geography_data()) == 0) {
+      showNotification("No data available for the selected geography.", type = "warning")
+    } else {
+      showNotification("Data successfully filtered by Geography.", type = "message")
+    }
+  })
   
   
   # # INFORMATION TAB ---------------------------------------------------------
@@ -428,7 +429,7 @@ server <- function(input, output, session) {
       filter(!is.na(Period))
     
     if(nrow(df_scurve) == 0){
-      showNotification("No hay datos disponibles para crear la S-Curve.", type = "error")
+      showNotification("No available data for the S-Curve.", type = "error")
       return(NULL)
     }
     
@@ -443,7 +444,7 @@ server <- function(input, output, session) {
         var_name    = var_name
       )
     }, error = function(e){
-      showNotification(paste("Error en Flighting Chart:", e$message),
+      showNotification(paste("Error Flighting Chart:", e$message),
                        type = "error")
       return(NULL)
     })
@@ -459,7 +460,7 @@ server <- function(input, output, session) {
         var_name    = var_name
       )
     }, error = function(e){
-      showNotification(paste("Error en S-Curve Chart:", e$message),
+      showNotification(paste("Error S-Curve Chart:", e$message),
                        type = "error")
       return(NULL)
     })

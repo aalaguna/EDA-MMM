@@ -165,9 +165,9 @@ ui <- fluidPage(
     ),
     
     
-    
-    
-    
+
+# UNIVARIATE TAB ----------------------------------------------------------
+
     # Tab UNIVARIATE (sin sidebar, ocupamos todo el ancho)
     tabPanel("Univariate",
              fluidPage(
