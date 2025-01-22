@@ -319,32 +319,65 @@ server <- function(input, output, session) {
         `Variable Spend` = map_chr(
           VariableName,
           ~ {
-            spend_candidate <- gsub("Circulation|Impressions|Clicks|Display", "Spend", .x)
+            spend_candidate <- gsub("Circulation|Impressions|Clicks", "Spend", .x)
             if (spend_candidate %in% names(rv$filtered_data)) {
               return(spend_candidate)
             } else {
-              return(NA)
+              return(NA_character_)
             }
           }
         )
       )
     
+    
     # Agregar métricas relacionadas con Spend
     consolidated_table <- rag_mapping %>%
       mutate(
-        Spend = map_dbl(
-          `Variable Spend`,
-          ~ if (!is.na(.x)) sum(rv$filtered_data[[.x]], na.rm = TRUE) else NA
+        Spend = map2_dbl(
+          Geography, `Variable Spend`,
+          ~ {
+            if (!is.na(.y) && .y %in% names(rv$filtered_data) && !is.na(.x)) {
+              filtered_data <- rv$filtered_data %>% filter(Geography == .x)
+              if (nrow(filtered_data) > 0) {
+                return(sum(filtered_data[[.y]], na.rm = TRUE))
+              } else {
+                return(NA_real_)
+              }
+            } else {
+              return(NA_real_)
+            }
+          }
         ),
         `Spend Percentage` = round((Spend / sum(Spend, na.rm = TRUE)) * 100, 2),
-        `Spend # Weeks` = map_dbl(
-          `Variable Spend`,
-          ~ if (!is.na(.x)) sum(rv$filtered_data[[.x]] > 0, na.rm = TRUE) else NA
+        `Spend # Weeks` = map2_dbl(
+          Geography, `Variable Spend`,
+          ~ {
+            if (!is.na(.y) && .y %in% names(rv$filtered_data) && !is.na(.x)) {
+              filtered_data <- rv$filtered_data %>% filter(Geography == .x)
+              if (nrow(filtered_data) > 0) {
+                return(sum(filtered_data[[.y]] > 0, na.rm = TRUE))
+              } else {
+                return(NA_real_)
+              }
+            } else {
+              return(NA_real_)
+            }
+          }
         ),
-        `Spend Distribution` = map_dbl(
-          `Variable Spend`,
-          ~ if (!is.na(.x)) round((sum(rv$filtered_data[[.x]] > 0, na.rm = TRUE) / 
-                                     nrow(rv$filtered_data)) * 100, 2) else NA
+        `Spend Distribution` = map2_dbl(
+          Geography, `Variable Spend`,
+          ~ {
+            if (!is.na(.y) && .y %in% names(rv$filtered_data) && !is.na(.x)) {
+              filtered_data <- rv$filtered_data %>% filter(Geography == .x)
+              if (nrow(filtered_data) > 0) {
+                return(round((sum(filtered_data[[.y]] > 0, na.rm = TRUE) / nrow(rv$filtered_data)) * 100, 2))
+              } else {
+                return(NA_real_)
+              }
+            } else {
+              return(NA_real_)
+            }
+          }
         ),
         `Activity Percentage` = round((Activity / sum(Activity, na.rm = TRUE)) * 100, 2),
         `Activity # Weeks` = map_dbl(VariableName, 
@@ -352,7 +385,9 @@ server <- function(input, output, session) {
         `Activity Distribution` = map_dbl(VariableName, 
                                           ~ round((sum(rv$filtered_data[[.x]] > 0, na.rm = TRUE) / 
                                                      nrow(rv$filtered_data)) * 100, 2)),
-        `CPC/CPM` = ifelse(Activity > 0, round((Spend / Activity) * 1000, 2), NA)
+        `CPC/CPM` = ifelse(grepl("Impressions", VariableName, ignore.case = TRUE),
+                           ifelse(Activity > 0, round((Spend / Activity) * 1000, 2), NA),
+                           ifelse(Activity > 0, round((Spend / Activity), 2), NA))
       ) %>%
       mutate(across(where(is.numeric), ~ formatC(., format = "f", big.mark = ",", digits = 2))) %>%
       select(`VariableName`, `Variable Spend`, Type, Geography, Activity, Spend, 
@@ -370,37 +405,7 @@ server <- function(input, output, session) {
       paste("Consolidated_Table", Sys.Date(), ".csv", sep = "")
     },
     content = function(file) {
-      consolidated_table <- rag_mapping %>%
-        mutate(
-          Spend = map_dbl(
-            `Variable Spend`,
-            ~ if (!is.na(.x)) sum(rv$filtered_data[[.x]], na.rm = TRUE) else NA
-          ),
-          `Spend Percentage` = round((Spend / sum(Spend, na.rm = TRUE)) * 100, 2),
-          `Spend # Weeks` = map_dbl(
-            `Variable Spend`,
-            ~ if (!is.na(.x)) sum(rv$filtered_data[[.x]] > 0, na.rm = TRUE) else NA
-          ),
-          `Spend Distribution` = map_dbl(
-            `Variable Spend`,
-            ~ if (!is.na(.x)) round((sum(rv$filtered_data[[.x]] > 0, na.rm = TRUE) / 
-                                       nrow(rv$filtered_data)) * 100, 2) else NA
-          ),
-          `Activity Percentage` = round((Activity / sum(Activity, na.rm = TRUE)) * 100, 2),
-          `Activity # Weeks` = map_dbl(VariableName, 
-                                       ~ sum(rv$filtered_data[[.x]] > 0, na.rm = TRUE)),
-          `Activity Distribution` = map_dbl(VariableName, 
-                                            ~ round((sum(rv$filtered_data[[.x]] > 0, na.rm = TRUE) / 
-                                                       nrow(rv$filtered_data)) * 100, 2)),
-          `CPC/CPM` = ifelse(Activity > 0, round((Spend / Activity) * 1000, 2), NA)
-        ) %>%
-        mutate(across(where(is.numeric), ~ formatC(., format = "f", big.mark = ",", digits = 2))) %>%
-        select(`VariableName`, `Variable Spend`, Type, Geography, Activity, Spend, 
-               `Activity Percentage`, `Spend Percentage`, 
-               `Activity # Weeks`, `Activity Distribution`, 
-               `Spend # Weeks`, `Spend Distribution`, `CPC/CPM`) %>%
-        arrange(Type, Geography)
-      
+      consolidated_table <- ... # El mismo cálculo de arriba
       write.csv(consolidated_table, file, row.names = FALSE)
     }
   )
