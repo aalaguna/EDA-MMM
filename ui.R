@@ -165,10 +165,9 @@ ui <- fluidPage(
     ),
     
     
-
-# UNIVARIATE TAB ----------------------------------------------------------
-
-    # Tab UNIVARIATE (sin sidebar, ocupamos todo el ancho)
+    
+    # UNIVARIATE TAB ----------------------------------------------------------
+    
     tabPanel("Univariate",
              fluidPage(
                # Panel superior para Geography, Product, Campaign, Outlet, Creative
@@ -178,11 +177,9 @@ ui <- fluidPage(
                           wellPanel(
                             h4("Global Filters", class = "section-title"),
                             fluidRow(
-                              # Geography dinámico
                               column(2,
-                                     selectInput("geography_univ", "Geography", choices = NULL)  # Lista inicial vacía
+                                     selectInput("geography_univ", "Geography", choices = NULL)
                               ),
-                              # Las demás opciones quedan estáticas por ahora
                               column(2,
                                      selectInput("product_univ", "Product", choices = c("Product A", "Product B", "Product C"))
                               ),
@@ -200,41 +197,13 @@ ui <- fluidPage(
                    )
                  )
                ),
-               # Transformaciones, boxplot, etc.
-               fluidRow(
-                 column(12,
-                        wellPanel(
-                          h4("Transformation Settings", class = "section-title"),
-                          fluidRow(
-                            column(2,
-                                   numericInput("decay_univ", "Decay", value = 1, min = 0, step = 0.1)
-                            ),
-                            column(2,
-                                   numericInput("lag_univ", "Lag", value = 0, min = 0)
-                            ),
-                            # Se muestra alpha, beta, maxval solo si la transformación es S-based
-                            conditionalPanel(
-                              condition = "input.transformation_univ == 'S Origin' || input.transformation_univ == 'S Shaped'",
-                              column(2,
-                                     numericInput("alpha_univ", "Alpha", value = 0.85, min = 0, step = 0.01)
-                              ),
-                              column(2,
-                                     numericInput("beta_univ", "Beta", value = 1, min = 0, step = 0.1)
-                              ),
-                              column(2,
-                                     numericInput("maxval_univ", "% MaxVal", value = 100, min = 0, step = 1)
-                              )
-                            )
-                          )
-                        )
-                 )
-               ),
                
+               # Contenido principal
                fluidRow(
+                 # Variable Selection a la izquierda
                  column(3,
                         wellPanel(
                           h4("Variable Selection", class = "section-title"),
-                          # KPI y variable disponibles
                           selectInput("kpi_univ", "KPI", choices = NULL),
                           selectInput("variable_univ", "Variable", choices = NULL),
                           
@@ -247,59 +216,87 @@ ui <- fluidPage(
                                        selected = "Linear")
                         )
                  ),
+                 
+                 # Transformación Settings a la derecha
                  column(9,
-                        div(class = "charts-container",
-                            fluidRow(
-                              column(6,
-                                     div(class = "chart-box",
-                                         h4("Variable Flighting", class = "chart-title"),
-                                         plotlyOutput("variable_flighting_chart")
-                                     )
-                              ),
-                              column(6,
-                                     div(class = "chart-box",
-                                         h4("Transformed Variable", class = "chart-title"),
-                                         plotlyOutput("var_transf_chart")
-                                     )
-                              )
-                            ),
-                            
-                            # En lugar de la Curva S, va el Boxplot
-                            fluidRow(
-                              column(6,
-                                     div(class = "chart-box",
-                                         h4("Boxplot", class = "chart-title"),
-                                         plotOutput("boxplot_univ")  # NUEVO OUTPUT
-                                     )
-                              ),
-                              column(6,
-                                     div(class = "chart-box",
-                                         h4("Transformaciones Aplicadas", class = "chart-title"),
-                                         # Aquí simplemente mostramos un texto o tabla con la explicación
-                                         verbatimTextOutput("transformations_summary_univ")
-                                     )
-                              )
-                            ),
-                            
-                            # Curva S condicional: solo si "S Origin" (o "S Shaped") 
-                            # y si realmente la queremos mostrar.
-                            # Por ejemplo, si la fuente de datos es S Origin, 
-                            conditionalPanel(
-                              condition = "input.transformation_univ == 'S Origin'",
-                              fluidRow(
-                                column(12,
-                                       div(class = "chart-box",
-                                           h4("S-Curve EDA", class = "chart-title"),
-                                           plotlyOutput("s_curve_univariate_plot", height = "400px")
+                        fluidRow(
+                          column(12,
+                                 wellPanel(
+                                   h4("Transformation Settings", class = "section-title"),
+                                   fluidRow(
+                                     column(2,
+                                            numericInput("decay_univ", "Decay", value = 1, min = 0, step = 0.1)
+                                     ),
+                                     column(2,
+                                            numericInput("lag_univ", "Lag", value = 0, min = 0)
+                                     ),
+                                     conditionalPanel(
+                                       condition = "input.transformation_univ == 'S Origin' || input.transformation_univ == 'S Shaped'",
+                                       column(2,
+                                              numericInput("alpha_univ", "Alpha", value = 0.85, min = 0, step = 0.01)
+                                       ),
+                                       column(2,
+                                              numericInput("beta_univ", "Beta", value = 1, min = 0, step = 0.1)
+                                       ),
+                                       column(2,
+                                              numericInput("maxval_univ", "% MaxVal", value = 100, min = 0, step = 1)
                                        )
-                                )
-                              )
+                                     )
+                                   )
+                                 )
+                          )
+                        ),
+                        
+                        # Dinámica para mostrar S-Curve o las gráficas normales
+                        fluidRow(
+                          conditionalPanel(
+                            condition = "input.transformation_univ == 'S Origin' || input.transformation_univ == 'S Shaped'",
+                            column(12,
+                                   div(class = "chart-box mt-3",
+                                       h4("S-Curve EDA", class = "chart-title"),
+                                       plotlyOutput("s_curve_univariate_plot", height = "300px")
+                                   )
                             )
+                          ),
+                          conditionalPanel(
+                            condition = "!(input.transformation_univ == 'S Origin' || input.transformation_univ == 'S Shaped')",
+                            column(6,
+                                   div(class = "chart-box",
+                                       h4("Variable Flighting", class = "chart-title"),
+                                       plotlyOutput("variable_flighting_chart", height = "300px")
+                                   )
+                            ),
+                            column(6,
+                                   div(class = "chart-box",
+                                       h4("Transformed Variable", class = "chart-title"),
+                                       plotlyOutput("var_transf_chart", height = "300px")
+                                   )
+                            )
+                          )
+                        )
+                 )
+               ),
+               
+               # Boxplot y transformaciones aplicadas alineadas y con el mismo tamaño que Variable Flighting
+               fluidRow(
+                 column(6,
+                        div(class = "chart-box",
+                            h4("Boxplot", class = "chart-title"),
+                            plotOutput("boxplot_univ", height = "300px")  # Tamaño uniforme
+                        )
+                 ),
+                 column(6,
+                        div(class = "chart-box",
+                            h4("Suggested Max Value", class = "chart-title"),
+                            verbatimTextOutput("transformations_summary_univ", placeholder = TRUE)
                         )
                  )
                )
              )
     ),
+    
+    
+    # MULTIVARIATE TAB --------------------------------------------------------
     
     # Tab MULTIVARIATE (sin sidebar)
     tabPanel("Multivariate",
