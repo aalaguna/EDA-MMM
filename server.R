@@ -191,101 +191,8 @@ server <- function(input, output, session) {
   
   
   # # INFORMATION TAB ---------------------------------------------------------
-  # 
-  # 
-  # 
-  # output$activity_table <- renderTable({
-  #   req(rv$filtered_data, input$media_vars)
-  #   rv$filtered_data %>%
-  #     summarise(across(all_of(input$media_vars),
-  #                      ~ mean(. > 0, na.rm = TRUE) * 100)) %>%
-  #     pivot_longer(cols = everything(),
-  #                  names_to = "Variable",
-  #                  values_to = "Activity %")
-  # })
-  # 
-  # output$spend_table <- renderTable({
-  #   req(rv$filtered_data, input$spend_vars)
-  #   total_spend <- sum(rv$filtered_data[[input$spend_vars[1]]], na.rm = TRUE)
-  #   if(total_spend <= 0) total_spend <- 1  # No divide entre 0
-  #   rv$filtered_data %>%
-  #     summarise(across(all_of(input$spend_vars),
-  #                      ~ sum(as.numeric(.), na.rm = TRUE) / total_spend * 100)) %>%
-  #     pivot_longer(cols = everything(),
-  #                  names_to = "Variable",
-  #                  values_to = "Spend %")
-  # })
-  # 
-  # output$activity_percentage_table <- renderTable({
-  #   req(rv$filtered_data, input$media_vars)
-  #   total_activity <- sum(rv$filtered_data[input$media_vars], na.rm = TRUE)
-  #   if(total_activity <= 0) total_activity <- 1
-  #   rv$filtered_data %>%
-  #     summarise(across(all_of(input$media_vars),
-  #                      ~ (sum(., na.rm = TRUE) / total_activity) * 100)) %>%
-  #     pivot_longer(cols = everything(), names_to = "Variable",
-  #                  values_to = "Activity_Percentage") %>%
-  #     mutate(Activity_Percentage = round(Activity_Percentage, 2)) %>%
-  #     select(Variable, Activity_Percentage)
-  # })
-  # 
-  # output$spend_percentage_table <- renderTable({
-  #   req(rv$filtered_data, input$spend_vars)
-  #   total_spend <- sum(rv$filtered_data[input$spend_vars], na.rm = TRUE)
-  #   if(total_spend <= 0) total_spend <- 1
-  #   rv$filtered_data %>%
-  #     summarise(across(all_of(input$spend_vars),
-  #                      ~ (sum(., na.rm = TRUE) / total_spend) * 100)) %>%
-  #     pivot_longer(cols = everything(), names_to = "Variable",
-  #                  values_to = "Spend_Percentage") %>%
-  #     mutate(Spend_Percentage = round(Spend_Percentage, 2)) %>%
-  #     select(Variable, Spend_Percentage)
-  # })
-  # 
-  # output$cpm_cpc <- renderTable({
-  #   req(rv$filtered_data, input$media_vars, input$spend_vars)
-  #   total_activity <- rv$filtered_data %>%
-  #     summarise(across(all_of(input$media_vars), ~ sum(., na.rm = TRUE))) %>%
-  #     pivot_longer(cols = everything(), names_to = "Variable", values_to = "Activity")
-  #   
-  #   total_spend <- rv$filtered_data %>%
-  #     summarise(across(all_of(input$spend_vars), ~ sum(., na.rm = TRUE))) %>%
-  #     pivot_longer(cols = everything(), names_to = "Variable", values_to = "Spend")
-  #   
-  #   combined_stats <- total_activity %>%
-  #     mutate(Spend = total_spend$Spend) %>%
-  #     mutate(CPM_CPC = ifelse(Activity > 0,
-  #                             round((Spend / Activity) * 1000, 2),
-  #                             NA))
-  #   combined_stats
-  # })
-  # 
-  # output$download_cpm_cpc <- downloadHandler(
-  #   filename = function() {
-  #     paste("CPM_CPC_Table", Sys.Date(), ".csv", sep = "")
-  #   },
-  #   content = function(file){
-  #     req(rv$filtered_data, input$media_vars, input$spend_vars)
-  #     
-  #     total_activity <- rv$filtered_data %>%
-  #       summarise(across(all_of(input$media_vars), ~ sum(., na.rm = TRUE))) %>%
-  #       pivot_longer(cols = everything(), names_to = "Variable", values_to = "Activity")
-  #     
-  #     total_spend <- rv$filtered_data %>%
-  #       summarise(across(all_of(input$spend_vars), ~ sum(., na.rm = TRUE))) %>%
-  #       pivot_longer(cols = everything(), names_to = "Variable", values_to = "Spend")
-  #     
-  #     combined_stats <- total_activity %>%
-  #       mutate(Spend = total_spend$Spend) %>%
-  #       mutate(CPM_CPC = ifelse(Activity > 0,
-  #                               round((Spend / Activity) * 1000, 2),
-  #                               NA))
-  #     
-  #     write.csv(combined_stats, file, row.names = FALSE)
-  #   }
-  # )
-  
-  output$consolidated_table <- renderTable({
+
+  consolidated_table <- reactive({
     req(rv$filtered_data, input$media_vars)
     
     # Variables seleccionadas
@@ -329,9 +236,8 @@ server <- function(input, output, session) {
         )
       )
     
-    
     # Agregar métricas relacionadas con Spend
-    consolidated_table <- rag_mapping %>%
+    rag_mapping %>%
       mutate(
         Spend = map2_dbl(
           Geography, `Variable Spend`,
@@ -395,21 +301,22 @@ server <- function(input, output, session) {
              `Activity # Weeks`, `Activity Distribution`, 
              `Spend # Weeks`, `Spend Distribution`, `CPC/CPM`) %>%
       arrange(Type, Geography)
-    
-    consolidated_table
+  })
+  
+  # Renderizar la tabla
+  output$consolidated_table <- renderTable({
+    consolidated_table()
   })
   
   # Descargar la tabla consolidada
   output$download_consolidated <- downloadHandler(
     filename = function() {
-      paste("Consolidated_Table", Sys.Date(), ".csv", sep = "")
+      paste("Summary_Table", Sys.Date(), ".csv", sep = "")
     },
     content = function(file) {
-      consolidated_table <- ... # El mismo cálculo de arriba
-      write.csv(consolidated_table, file, row.names = FALSE)
+      write.csv(consolidated_table(), file, row.names = FALSE)
     }
   )
-  
   
   # UNIVARIATE TAB ----------------------------------------------------------
   
