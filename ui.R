@@ -123,7 +123,7 @@ ui <- fluidPage(
           column(
             width = 12,
             wellPanel(
-              h4("File Information and Configuration", class = "section-title"),
+              h4("File Information", class = "section-title"),
               
               # Temporal Dimension
               div(
@@ -134,12 +134,8 @@ ui <- fluidPage(
               # Cross Sectional Dimension
               div(
                 strong("Cross Sectional Dimension:"), # Texto en negrilla
-                checkboxGroupInput(
-                  "cross_sectional_dimension",
-                  NULL,
-                  choices = NULL # Se actualizará dinámicamente
-                )
-              )
+                uiOutput("cross_sectional_dimension_ui") # Aquí se renderiza el texto dinámico
+              ),
             )
           )
         ),

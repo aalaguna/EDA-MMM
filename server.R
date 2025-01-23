@@ -28,7 +28,7 @@ server <- function(input, output, session) {
   output$temporal_dimension_ui <- renderUI({
     req(rv$data)
     
-    # Detectar si existe una columna llamada "Period" (insensible a mayúsculas)
+    # Detectar si existe una columna llamada "Period" 
     temporal_columns <- names(rv$data)[tolower(names(rv$data)) == "period"]
     
     if (length(temporal_columns) > 0) {
@@ -40,24 +40,23 @@ server <- function(input, output, session) {
     }
   })
   
-  # Validar las opciones de Cross Sectional Dimension
-  observe({
+  output$cross_sectional_dimension_ui <- renderUI({
     req(rv$data)
     
-    # Palabras clave permitidas
-    valid_keywords <- c("Geography", "Product", "Campaign", "Outlet", "Creative")
+    # Detectar palabras claves 
+    keywords <- c("Geography", "Product", "Campaign", "Outlet", "Creative")
     
-    # Filtrar columnas válidas: Solo las que coincidan exactamente con las palabras clave
-    available_columns <- names(rv$data) %>%
-      .[ . %in% valid_keywords ]  # Solo las columnas que sean exactamente igual a las palabras clave
+    # Filtrar columnas 
+    available_columns <- names(rv$data) %>% 
+      .[. %in% keywords]
     
-    # Actualizar el checkbox con columnas válidas
-    updateCheckboxGroupInput(
-      session,
-      "cross_sectional_dimension",
-      choices = available_columns,
-      selected = NULL
-    )
+    if(length(available_columns) > 0){
+      div(
+        paste(available_columns, collapse = ", ")
+      )
+    } else{
+      div("No cross sectional dimension found in the dataset.")
+    }
   })
   
   # 1. Carga de datos ---------------------------------------
