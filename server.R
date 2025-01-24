@@ -91,16 +91,56 @@ server <- function(input, output, session) {
     })
   })
   
+  # # Observador que asigna rv$data cuando loaded_data() cambia
+
+  # # Observador que asigna rv$data cuando loaded_data() cambia
+  # observeEvent(loaded_data(), {
+  #   rv$data <- loaded_data()
+  #   req(rv$data)
+  #   
+  #   # Convertir columnas de fecha (Period o periodo) a Date
+  #   if ("Period" %in% names(rv$data)) {
+  #     rv$data$Period <- as.Date(rv$data$Period)
+  #   }
+  #   if ("periodo" %in% names(rv$data)) {
+  #     rv$data$periodo <- as.Date(rv$data$periodo)
+  #   }
+  #   
+  #   # Actualizar selects de variables
+  #   numeric_cols <- names(rv$data)[sapply(rv$data, is.numeric)]
+  #   
+  #   # Identificar media y spend
+  #   MEDIA_VARIABLES <- grep("(Impressions)|(Circulation)|(Clicks)|(Display)|(OOH)|(OLV)|(Magazine)|(Newspaper)",
+  #                           names(rv$data), value = TRUE)
+  #   SPEND_VARIABLES <- grep("(Cost)|(Spend)", MEDIA_VARIABLES, value = TRUE)
+  #   MEDIA_VARIABLES <- setdiff(MEDIA_VARIABLES, SPEND_VARIABLES)
+  #   MEDIA_VARIABLES <- intersect(MEDIA_VARIABLES, numeric_cols)
+  #   SPEND_VARIABLES <- intersect(SPEND_VARIABLES, numeric_cols)
+  #   
+  #   # Actualizar inputs de "Data Management" y seleccionar automáticamente todas las variables de media
+  #   updateSelectInput(session, "kpi", choices = numeric_cols)
+  #   updateSelectInput(session, "media_vars", choices = MEDIA_VARIABLES, selected = MEDIA_VARIABLES)
+  #   updateSelectInput(session, "spend_vars", choices = SPEND_VARIABLES, selected = NULL)
+  #   updateSelectInput(session, "base_vars", choices = numeric_cols)
+  #   
+  #   updateSelectInput(session, "kpi_univ", choices = numeric_cols)
+  #   updateSelectInput(session, "variable_univ", choices = numeric_cols)
+  #   updateSelectInput(session, "kpi_multi", choices = numeric_cols)
+  #   updateSelectInput(session, "var1_multi", choices = numeric_cols)
+  #   updateSelectInput(session, "var2_multi", choices = numeric_cols)
+  #   updateSelectInput(session, "var3_multi", choices = numeric_cols)
+  #   updateSelectInput(session, "var4_multi", choices = c("None", numeric_cols))
+  # })
   # Observador que asigna rv$data cuando loaded_data() cambia
   observeEvent(loaded_data(), {
     rv$data <- loaded_data()
     req(rv$data)
     
     # Convertir columnas de fecha (Period o periodo) a Date
-    if("Period" %in% names(rv$data)){
+    if ("Period" %in% names(rv$data)) {
       rv$data$Period <- as.Date(rv$data$Period)
     }
-    if("periodo" %in% names(rv$data)){
+    if ("periodo" %in% names(rv$data)) {
       rv$data$periodo <- as.Date(rv$data$periodo)
     }
     
@@ -108,26 +148,16 @@ server <- function(input, output, session) {
     numeric_cols <- names(rv$data)[sapply(rv$data, is.numeric)]
     
     # Identificar media y spend
-    MEDIA_VARIABLES <- grep("(Impressions)|(Circulation)|(Clicks)|(Display)|(OOH)|(OLV)|(Magazine)|(Newspaper)",
+    MEDIA_VARIABLES <- grep("(Impressions|Circulation|Clicks|Display|OOH|OLV|Magazine|Newspaper|Social)", 
                             names(rv$data), value = TRUE)
-    SPEND_VARIABLES <- grep("(Cost)|(Spend)", MEDIA_VARIABLES, value = TRUE)
-    MEDIA_VARIABLES <- setdiff(MEDIA_VARIABLES, SPEND_VARIABLES)
+    SPEND_VARIABLES <- grep("(Spend|Cost)", names(rv$data), value = TRUE)
+    
     MEDIA_VARIABLES <- intersect(MEDIA_VARIABLES, numeric_cols)
     SPEND_VARIABLES <- intersect(SPEND_VARIABLES, numeric_cols)
     
-    # Actualizar inputs de "Data Management" y univariado/multivariado
-    updateSelectInput(session, "kpi",        choices = numeric_cols)
-    updateSelectInput(session, "media_vars", choices = MEDIA_VARIABLES)
-    updateSelectInput(session, "spend_vars", choices = SPEND_VARIABLES)
-    updateSelectInput(session, "base_vars",  choices = numeric_cols)
-    
-    updateSelectInput(session, "kpi_univ",      choices = numeric_cols)
-    updateSelectInput(session, "variable_univ", choices = numeric_cols)
-    updateSelectInput(session, "kpi_multi",     choices = numeric_cols)
-    updateSelectInput(session, "var1_multi",    choices = numeric_cols)
-    updateSelectInput(session, "var2_multi",    choices = numeric_cols)
-    updateSelectInput(session, "var3_multi",    choices = numeric_cols)
-    updateSelectInput(session, "var4_multi",    choices = c("None", numeric_cols))
+    # Seleccionar automáticamente todas las variables de Media y Spend
+    updateSelectInput(session, "media_vars", choices = MEDIA_VARIABLES, selected = MEDIA_VARIABLES)
+    updateSelectInput(session, "spend_vars", choices = SPEND_VARIABLES, selected = SPEND_VARIABLES)
   })
   
   # 2. Observador para filtrar datos según la fecha seleccionada -----------
@@ -191,22 +221,28 @@ server <- function(input, output, session) {
   
   
   # # INFORMATION TAB ---------------------------------------------------------
-  
+ 
   consolidated_table <- reactive({
-    req(rv$filtered_data, input$media_vars)
+    req(rv$filtered_data, input$media_vars) # Asegúrate de que los datos y el input existan
     
     # Variables seleccionadas
     media_vars <- input$media_vars
-    all_vars <- media_vars
     
-    # Datos en formato largo
+    # Verificar si hay variables seleccionadas
+    if (length(media_vars) == 0) {
+      return(data.frame()) # Devuelve una tabla vacía si no hay variables seleccionadas
+    }
+    
+    # Datos en formato largo para las variables seleccionadas
     data_long <- rv$filtered_data %>%
-      pivot_longer(cols = all_of(all_vars),
-                   names_to = "VariableName",
-                   values_to = "VariableValue") %>%
-      filter(VariableValue > 0)
+      pivot_longer(
+        cols = all_of(media_vars),
+        names_to = "VariableName",
+        values_to = "VariableValue"
+      ) %>%
+      filter(VariableValue > 0) # Filtrar valores mayores a 0
     
-    # Clasificación RAG/No-RAG
+    # Calcular actividad y clasificar RAG/No-RAG
     rag_mapping <- data_long %>%
       group_by(Geography, VariableName) %>%
       summarise(Activity = sum(VariableValue, na.rm = TRUE), .groups = "drop") %>%
@@ -220,10 +256,10 @@ server <- function(input, output, session) {
       filter(!(Type == "RAG" & row_number() > 1)) %>%
       ungroup()
     
-    # Match Variable Name with Variable Spend
+    # Relacionar Variable Spend
     rag_mapping <- rag_mapping %>%
       mutate(
-        `Variable Spend` = map_chr(
+        `VariableSpend` = map_chr(
           VariableName,
           ~ {
             spend_candidate <- gsub("Circulation|Impressions|Clicks", "Spend", .x)
@@ -240,7 +276,7 @@ server <- function(input, output, session) {
     rag_mapping %>%
       mutate(
         Spend = map2_dbl(
-          Geography, `Variable Spend`,
+          Geography, `VariableSpend`,
           ~ {
             if (!is.na(.y) && .y %in% names(rv$filtered_data) && !is.na(.x)) {
               filtered_data <- rv$filtered_data %>% filter(Geography == .x)
@@ -254,9 +290,15 @@ server <- function(input, output, session) {
             }
           }
         ),
+        `Activity Percentage` = round((Activity / sum(Activity, na.rm = TRUE)) * 100, 2),
         `Spend Percentage` = round((Spend / sum(Spend, na.rm = TRUE)) * 100, 2),
-        `Spend # Weeks` = map2_dbl(
-          Geography, `Variable Spend`,
+        `Activity # weeks` = map_dbl(VariableName, ~ sum(rv$filtered_data[[.x]] > 0, na.rm = TRUE)),
+        `Activity distribution` = map_dbl(
+          VariableName, 
+          ~ round((sum(rv$filtered_data[[.x]] > 0, na.rm = TRUE) / nrow(rv$filtered_data)) * 100, 2)
+        ),
+        `Spend # weeks` = map2_dbl(
+          Geography, `VariableSpend`,
           ~ {
             if (!is.na(.y) && .y %in% names(rv$filtered_data) && !is.na(.x)) {
               filtered_data <- rv$filtered_data %>% filter(Geography == .x)
@@ -271,7 +313,7 @@ server <- function(input, output, session) {
           }
         ),
         `Spend Distribution` = map2_dbl(
-          Geography, `Variable Spend`,
+          Geography, `VariableSpend`,
           ~ {
             if (!is.na(.y) && .y %in% names(rv$filtered_data) && !is.na(.x)) {
               filtered_data <- rv$filtered_data %>% filter(Geography == .x)
@@ -285,38 +327,27 @@ server <- function(input, output, session) {
             }
           }
         ),
-        `Activity Percentage` = round((Activity / sum(Activity, na.rm = TRUE)) * 100, 2),
-        `Activity # Weeks` = map_dbl(VariableName, 
-                                     ~ sum(rv$filtered_data[[.x]] > 0, na.rm = TRUE)),
-        `Activity Distribution` = map_dbl(VariableName, 
-                                          ~ round((sum(rv$filtered_data[[.x]] > 0, na.rm = TRUE) / 
-                                                     nrow(rv$filtered_data)) * 100, 2)),
-        `CPC/CPM` = ifelse(grepl("Impressions", VariableName, ignore.case = TRUE),
-                           ifelse(Activity > 0, round((Spend / Activity) * 1000, 2), NA),
-                           ifelse(Activity > 0, round((Spend / Activity), 2), NA))
+        `CPC/CPM` = ifelse(
+          grepl("Impressions", VariableName, ignore.case = TRUE),
+          ifelse(Activity > 0, round((Spend / Activity) * 1000, 2), NA),
+          ifelse(Activity > 0, round((Spend / Activity), 2), NA)
+        )
       ) %>%
       mutate(across(where(is.numeric), ~ formatC(., format = "f", big.mark = ",", digits = 2))) %>%
-      select(`VariableName`, `Variable Spend`, Type, Geography, Activity, Spend, 
-             `Activity Percentage`, `Spend Percentage`, 
-             `Activity # Weeks`, `Activity Distribution`, 
-             `Spend # Weeks`, `Spend Distribution`, `CPC/CPM`) %>%
+      select(
+        VariableName, VariableSpend, Geography, Type, Activity, Spend, 
+        `Activity Percentage`, `Spend Percentage`, `Activity # weeks`, 
+        `Activity distribution`, `Spend # weeks`, `Spend Distribution`, `CPC/CPM`
+      ) %>%
       arrange(Type, Geography)
   })
   
-  # Renderizar la tabla
+  # Renderizar la tabla con un tamaño más pequeño para las letras
   output$consolidated_table <- renderTable({
     consolidated_table()
-  })
+  }, striped = TRUE, bordered = TRUE, hover = TRUE, align = 'l', 
+  spacing = "xs") # Esto ajusta el espaciado y reduce visualmente la tabla
   
-  # Descargar la tabla consolidada
-  output$download_consolidated <- downloadHandler(
-    filename = function() {
-      paste("Summary_Table", Sys.Date(), ".csv", sep = "")
-    },
-    content = function(file) {
-      write.csv(consolidated_table(), file, row.names = FALSE)
-    }
-  )
   
   # UNIVARIATE TAB ----------------------------------------------------------
   
