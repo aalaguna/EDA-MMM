@@ -458,17 +458,17 @@ server <- function(input, output, session) {
     date_col <- if ("Period" %in% names(filtered_geography_data())) {
       "Period"
     } else if ("periodo" %in% names(filtered_geography_data())) {
-      "periodo"
+      "period"
     } else {
       NULL
     }
-    req(date_col)  # Asegúrate de que existe la columna de fecha
+    req(date_col) 
     
-    # Filtrar las columnas necesarias
+
     data_to_plot <- filtered_geography_data() %>%
       select(!!sym(date_col), KPI = !!sym(input$kpi_univ), Variable = !!sym(input$variable_univ))
     
-    # Verificar si hay datos suficientes
+
     validate(
       need(nrow(data_to_plot) > 0, "No data available to plot.")
     )

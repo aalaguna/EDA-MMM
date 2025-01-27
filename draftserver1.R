@@ -622,26 +622,26 @@ server <- function(input, output, session) {
       need(input$transformation_univ == "S Origin",
            "This plot is only displayed for 'S Origin'.")
     )
-    
+
     var_name <- input$variable_univ
     alpha <- input$alpha_univ
     beta <- input$beta_univ
     max_val_pct <- input$maxval_univ
     decay <- input$decay_univ
     lag <- input$lag_univ
-    
+
     df_scurve <- filtered_geography_data() %>%
       mutate(Period = if ("Period" %in% names(.)) as.Date(Period)
              else if ("periodo" %in% names(.)) as.Date(periodo)
              else as.Date(NA)) %>%
       select(Period, value = !!sym(var_name)) %>%
       filter(!is.na(Period))
-    
+
     if (nrow(df_scurve) == 0) {
       showNotification("No available data for the S-Curve.", type = "error")
       return(NULL)
     }
-    
+
     flighting_plot_gg <- tryCatch({
       create_flighting_chart(
         data_chart  = df_scurve,
@@ -656,7 +656,7 @@ server <- function(input, output, session) {
       showNotification(paste("Error in Flighting Chart:", e$message), type = "error")
       return(NULL)
     })
-    
+
     s_curve_plot_gg <- tryCatch({
       create_s_curve_chart(
         data_chart  = df_scurve,
@@ -671,17 +671,17 @@ server <- function(input, output, session) {
       showNotification(paste("Error in S-Curve Chart:", e$message), type = "error")
       return(NULL)
     })
-    
+
     if (is.null(flighting_plot_gg) || is.null(s_curve_plot_gg)) {
       return(NULL)
     }
-    
+
     subplot(flighting_plot_gg, s_curve_plot_gg, nrows = 1,
             titleX = TRUE, titleY = TRUE) %>%
       layout(title = "S-Curve EDA")
   })
-  
-  
+
+
   # MULTIVARIATE TAB --------------------------------------------------------
   
   
