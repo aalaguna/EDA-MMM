@@ -91,56 +91,16 @@ server <- function(input, output, session) {
     })
   })
   
-  # # Observador que asigna rv$data cuando loaded_data() cambia
-
-  # # Observador que asigna rv$data cuando loaded_data() cambia
-  # observeEvent(loaded_data(), {
-  #   rv$data <- loaded_data()
-  #   req(rv$data)
-  #   
-  #   # Convertir columnas de fecha (Period o periodo) a Date
-  #   if ("Period" %in% names(rv$data)) {
-  #     rv$data$Period <- as.Date(rv$data$Period)
-  #   }
-  #   if ("periodo" %in% names(rv$data)) {
-  #     rv$data$periodo <- as.Date(rv$data$periodo)
-  #   }
-  #   
-  #   # Actualizar selects de variables
-  #   numeric_cols <- names(rv$data)[sapply(rv$data, is.numeric)]
-  #   
-  #   # Identificar media y spend
-  #   MEDIA_VARIABLES <- grep("(Impressions)|(Circulation)|(Clicks)|(Display)|(OOH)|(OLV)|(Magazine)|(Newspaper)",
-  #                           names(rv$data), value = TRUE)
-  #   SPEND_VARIABLES <- grep("(Cost)|(Spend)", MEDIA_VARIABLES, value = TRUE)
-  #   MEDIA_VARIABLES <- setdiff(MEDIA_VARIABLES, SPEND_VARIABLES)
-  #   MEDIA_VARIABLES <- intersect(MEDIA_VARIABLES, numeric_cols)
-  #   SPEND_VARIABLES <- intersect(SPEND_VARIABLES, numeric_cols)
-  #   
-  #   # Actualizar inputs de "Data Management" y seleccionar automáticamente todas las variables de media
-  #   updateSelectInput(session, "kpi", choices = numeric_cols)
-  #   updateSelectInput(session, "media_vars", choices = MEDIA_VARIABLES, selected = MEDIA_VARIABLES)
-  #   updateSelectInput(session, "spend_vars", choices = SPEND_VARIABLES, selected = NULL)
-  #   updateSelectInput(session, "base_vars", choices = numeric_cols)
-  #   
-  #   updateSelectInput(session, "kpi_univ", choices = numeric_cols)
-  #   updateSelectInput(session, "variable_univ", choices = numeric_cols)
-  #   updateSelectInput(session, "kpi_multi", choices = numeric_cols)
-  #   updateSelectInput(session, "var1_multi", choices = numeric_cols)
-  #   updateSelectInput(session, "var2_multi", choices = numeric_cols)
-  #   updateSelectInput(session, "var3_multi", choices = numeric_cols)
-  #   updateSelectInput(session, "var4_multi", choices = c("None", numeric_cols))
-  # })
   # Observador que asigna rv$data cuando loaded_data() cambia
   observeEvent(loaded_data(), {
     rv$data <- loaded_data()
     req(rv$data)
     
     # Convertir columnas de fecha (Period o periodo) a Date
-    if ("Period" %in% names(rv$data)) {
+    if("Period" %in% names(rv$data)){
       rv$data$Period <- as.Date(rv$data$Period)
     }
-    if ("periodo" %in% names(rv$data)) {
+    if("periodo" %in% names(rv$data)){
       rv$data$periodo <- as.Date(rv$data$periodo)
     }
     
@@ -148,16 +108,27 @@ server <- function(input, output, session) {
     numeric_cols <- names(rv$data)[sapply(rv$data, is.numeric)]
     
     # Identificar media y spend
-    MEDIA_VARIABLES <- grep("(Impressions|Circulation|Clicks|Display|OOH|OLV|Magazine|Newspaper|Social)", 
+    MEDIA_VARIABLES <- grep("(Impressions)|(Circulation)|(Clicks)|(Display)|(OOH)|(OLV)|(Magazine)|(Newspaper)",
                             names(rv$data), value = TRUE)
-    SPEND_VARIABLES <- grep("(Spend|Cost)", names(rv$data), value = TRUE)
-    
+    SPEND_VARIABLES <- grep("(Cost)|(Spend)", MEDIA_VARIABLES, value = TRUE)
+    MEDIA_VARIABLES <- setdiff(MEDIA_VARIABLES, SPEND_VARIABLES)
     MEDIA_VARIABLES <- intersect(MEDIA_VARIABLES, numeric_cols)
     SPEND_VARIABLES <- intersect(SPEND_VARIABLES, numeric_cols)
     
-    # Seleccionar automáticamente todas las variables de Media y Spend
+    # Actualizar inputs de "Data Management" y univariado/multivariado
+    updateSelectInput(session, "kpi",        choices = numeric_cols)
+    # updateSelectInput(session, "media_vars", choices = MEDIA_VARIABLES)
     updateSelectInput(session, "media_vars", choices = MEDIA_VARIABLES, selected = MEDIA_VARIABLES)
     updateSelectInput(session, "spend_vars", choices = SPEND_VARIABLES, selected = SPEND_VARIABLES)
+    updateSelectInput(session, "base_vars",  choices = numeric_cols)
+    
+    updateSelectInput(session, "kpi_univ",      choices = numeric_cols)
+    updateSelectInput(session, "variable_univ", choices = numeric_cols)
+    updateSelectInput(session, "kpi_multi",     choices = numeric_cols)
+    updateSelectInput(session, "var1_multi",    choices = numeric_cols)
+    updateSelectInput(session, "var2_multi",    choices = numeric_cols)
+    updateSelectInput(session, "var3_multi",    choices = numeric_cols)
+    updateSelectInput(session, "var4_multi",    choices = c("None", numeric_cols))
   })
   
   # 2. Observador para filtrar datos según la fecha seleccionada -----------
@@ -221,48 +192,184 @@ server <- function(input, output, session) {
   
   
   # # INFORMATION TAB ---------------------------------------------------------
- 
+  
+  # consolidated_table <- reactive({
+  #   req(rv$filtered_data, input$media_vars)
+  #   
+  #   # Variables seleccionadas
+  #   media_vars <- input$media_vars
+  #   all_vars <- media_vars
+  #   
+  #   # Datos en formato largo
+  #   data_long <- rv$filtered_data %>%
+  #     pivot_longer(cols = all_of(all_vars),
+  #                  names_to = "VariableName",
+  #                  values_to = "VariableValue") %>%
+  #     filter(VariableValue > 0)
+  #   
+  #   # Clasificación RAG/No-RAG
+  #   rag_mapping <- data_long %>%
+  #     group_by(Geography, VariableName) %>%
+  #     summarise(Activity = sum(VariableValue, na.rm = TRUE), .groups = "drop") %>%
+  #     group_by(VariableName) %>%
+  #     mutate(Type = ifelse(length(unique(Activity)) == 1, "RAG", "No-RAG")) %>%
+  #     ungroup()
+  #   
+  #   # Filtrar primeras geografías para RAG
+  #   rag_mapping <- rag_mapping %>%
+  #     group_by(VariableName) %>%
+  #     filter(!(Type == "RAG" & row_number() > 1)) %>%
+  #     ungroup()
+  #   
+  #   # Match Variable Name with Variable Spend
+  #   rag_mapping <- rag_mapping %>%
+  #     mutate(
+  #       `Variable Spend` = map_chr(
+  #         VariableName,
+  #         ~ {
+  #           spend_candidate <- gsub("Circulation|Impressions|Clicks", "Spend", .x)
+  #           if (spend_candidate %in% names(rv$filtered_data)) {
+  #             return(spend_candidate)
+  #           } else {
+  #             return(NA_character_)
+  #           }
+  #         }
+  #       )
+  #     )
+  #   
+  #   # Agregar métricas relacionadas con Spend
+  #   rag_mapping %>%
+  #     mutate(
+  #       Spend = map2_dbl(
+  #         Geography, `Variable Spend`,
+  #         ~ {
+  #           if (!is.na(.y) && .y %in% names(rv$filtered_data) && !is.na(.x)) {
+  #             filtered_data <- rv$filtered_data %>% filter(Geography == .x)
+  #             if (nrow(filtered_data) > 0) {
+  #               return(sum(filtered_data[[.y]], na.rm = TRUE))
+  #             } else {
+  #               return(NA_real_)
+  #             }
+  #           } else {
+  #             return(NA_real_)
+  #           }
+  #         }
+  #       ),
+  #       `Spend Percentage` = round((Spend / sum(Spend, na.rm = TRUE)) * 100, 2),
+  #       `Spend # Weeks` = map2_dbl(
+  #         Geography, `Variable Spend`,
+  #         ~ {
+  #           if (!is.na(.y) && .y %in% names(rv$filtered_data) && !is.na(.x)) {
+  #             filtered_data <- rv$filtered_data %>% filter(Geography == .x)
+  #             if (nrow(filtered_data) > 0) {
+  #               return(sum(filtered_data[[.y]] > 0, na.rm = TRUE))
+  #             } else {
+  #               return(NA_real_)
+  #             }
+  #           } else {
+  #             return(NA_real_)
+  #           }
+  #         }
+  #       ),
+  #       `Spend Distribution` = map2_dbl(
+  #         Geography, `Variable Spend`,
+  #         ~ {
+  #           if (!is.na(.y) && .y %in% names(rv$filtered_data) && !is.na(.x)) {
+  #             filtered_data <- rv$filtered_data %>% filter(Geography == .x)
+  #             if (nrow(filtered_data) > 0) {
+  #               return(round((sum(filtered_data[[.y]] > 0, na.rm = TRUE) / nrow(rv$filtered_data)) * 100, 2))
+  #             } else {
+  #               return(NA_real_)
+  #             }
+  #           } else {
+  #             return(NA_real_)
+  #           }
+  #         }
+  #       ),
+  #       `Activity Percentage` = round((Activity / sum(Activity, na.rm = TRUE)) * 100, 2),
+  #       `Activity # Weeks` = map_dbl(VariableName, 
+  #                                    ~ sum(rv$filtered_data[[.x]] > 0, na.rm = TRUE)),
+  #       `Activity Distribution` = map_dbl(VariableName, 
+  #                                         ~ round((sum(rv$filtered_data[[.x]] > 0, na.rm = TRUE) / 
+  #                                                    nrow(rv$filtered_data)) * 100, 2)),
+  #       `CPC/CPM` = ifelse(grepl("Impressions", VariableName, ignore.case = TRUE),
+  #                          ifelse(Activity > 0, round((Spend / Activity) * 1000, 2), NA),
+  #                          ifelse(Activity > 0, round((Spend / Activity), 2), NA))
+  #     ) %>%
+  #     mutate(across(where(is.numeric), ~ formatC(., format = "f", big.mark = ",", digits = 2))) %>%
+  #     select(`VariableName`, `Variable Spend`, Type, Geography, Activity, Spend, 
+  #            `Activity Percentage`, `Spend Percentage`, 
+  #            `Activity # Weeks`, `Activity Distribution`, 
+  #            `Spend # Weeks`, `Spend Distribution`, `CPC/CPM`) %>%
+  #     arrange(Type, Geography)
+  # })
+  # 
+  # # Renderizar la tabla
+  # output$consolidated_table <- renderTable({
+  #   consolidated_table()
+  # })
+  # 
+  # # Descargar la tabla consolidada
+  # output$download_consolidated <- downloadHandler(
+  #   filename = function() {
+  #     paste("Summary_Table", Sys.Date(), ".csv", sep = "")
+  #   },
+  #   content = function(file) {
+  #     write.csv(consolidated_table(), file, row.names = FALSE)
+  #   }
+  # )
   consolidated_table <- reactive({
-    req(rv$filtered_data, input$media_vars) # Asegúrate de que los datos y el input existan
+    req(rv$filtered_data, input$media_vars)
     
     # Variables seleccionadas
     media_vars <- input$media_vars
+    spend_vars <- input$spend_vars
     
-    # Verificar si hay variables seleccionadas
-    if (length(media_vars) == 0) {
-      return(data.frame()) # Devuelve una tabla vacía si no hay variables seleccionadas
+    # Validación: Verificar que las variables existen en el dataset
+    missing_media_vars <- setdiff(media_vars, names(rv$filtered_data))
+    missing_spend_vars <- setdiff(spend_vars, names(rv$filtered_data))
+    
+    if (length(missing_media_vars) > 0 || length(missing_spend_vars) > 0) {
+      showNotification(
+        paste("Missing variables:", 
+              paste(c(missing_media_vars, missing_spend_vars), collapse = ", ")),
+        type = "error"
+      )
+      return(NULL)
     }
     
-    # Datos en formato largo para las variables seleccionadas
+    # Pivotar datos de media_vars a formato largo
     data_long <- rv$filtered_data %>%
       pivot_longer(
         cols = all_of(media_vars),
         names_to = "VariableName",
         values_to = "VariableValue"
       ) %>%
-      filter(VariableValue > 0) # Filtrar valores mayores a 0
+      filter(VariableValue > 0)
     
-    # Calcular actividad y clasificar RAG/No-RAG
+    # Cálculo de actividad para cada Geography y VariableName
     rag_mapping <- data_long %>%
       group_by(Geography, VariableName) %>%
-      summarise(Activity = sum(VariableValue, na.rm = TRUE), .groups = "drop") %>%
+      summarise(
+        Activity = sum(VariableValue, na.rm = TRUE),
+        `# Weeks Activity` = sum(VariableValue > 0, na.rm = TRUE),
+        .groups = "drop"
+      ) %>%
       group_by(VariableName) %>%
-      mutate(Type = ifelse(length(unique(Activity)) == 1, "RAG", "No-RAG")) %>%
+      mutate(
+        Type = ifelse(length(unique(Activity)) == 1, "RAG", "No-RAG"),
+        `Activity Percentage` = round((Activity / sum(Activity, na.rm = TRUE)) * 100, 2),
+        `Activity Distribution` = round((`# Weeks Activity` / nrow(rv$filtered_data)) * 100, 2)
+      ) %>%
       ungroup()
     
-    # Filtrar primeras geografías para RAG
-    rag_mapping <- rag_mapping %>%
-      group_by(VariableName) %>%
-      filter(!(Type == "RAG" & row_number() > 1)) %>%
-      ungroup()
-    
-    # Relacionar Variable Spend
+    # Asignar Variable Spend correspondiente
     rag_mapping <- rag_mapping %>%
       mutate(
-        `VariableSpend` = map_chr(
+        `Variable Spend` = map_chr(
           VariableName,
           ~ {
-            spend_candidate <- gsub("Circulation|Impressions|Clicks", "Spend", .x)
+            spend_candidate <- gsub("Impressions|Circulation|Clicks", "Spend", .x)
             if (spend_candidate %in% names(rv$filtered_data)) {
               return(spend_candidate)
             } else {
@@ -272,11 +379,11 @@ server <- function(input, output, session) {
         )
       )
     
-    # Agregar métricas relacionadas con Spend
-    rag_mapping %>%
+    # Cálculos relacionados con Spend
+    rag_mapping <- rag_mapping %>%
       mutate(
         Spend = map2_dbl(
-          Geography, `VariableSpend`,
+          Geography, `Variable Spend`,
           ~ {
             if (!is.na(.y) && .y %in% names(rv$filtered_data) && !is.na(.x)) {
               filtered_data <- rv$filtered_data %>% filter(Geography == .x)
@@ -290,15 +397,9 @@ server <- function(input, output, session) {
             }
           }
         ),
-        `Activity Percentage` = round((Activity / sum(Activity, na.rm = TRUE)) * 100, 2),
         `Spend Percentage` = round((Spend / sum(Spend, na.rm = TRUE)) * 100, 2),
-        `Activity # weeks` = map_dbl(VariableName, ~ sum(rv$filtered_data[[.x]] > 0, na.rm = TRUE)),
-        `Activity distribution` = map_dbl(
-          VariableName, 
-          ~ round((sum(rv$filtered_data[[.x]] > 0, na.rm = TRUE) / nrow(rv$filtered_data)) * 100, 2)
-        ),
-        `Spend # weeks` = map2_dbl(
-          Geography, `VariableSpend`,
+        `# Weeks Spend` = map2_dbl(
+          Geography, `Variable Spend`,
           ~ {
             if (!is.na(.y) && .y %in% names(rv$filtered_data) && !is.na(.x)) {
               filtered_data <- rv$filtered_data %>% filter(Geography == .x)
@@ -312,42 +413,39 @@ server <- function(input, output, session) {
             }
           }
         ),
-        `Spend Distribution` = map2_dbl(
-          Geography, `VariableSpend`,
-          ~ {
-            if (!is.na(.y) && .y %in% names(rv$filtered_data) && !is.na(.x)) {
-              filtered_data <- rv$filtered_data %>% filter(Geography == .x)
-              if (nrow(filtered_data) > 0) {
-                return(round((sum(filtered_data[[.y]] > 0, na.rm = TRUE) / nrow(rv$filtered_data)) * 100, 2))
-              } else {
-                return(NA_real_)
-              }
-            } else {
-              return(NA_real_)
-            }
-          }
-        ),
+        `Spend Distribution` = round((`# Weeks Spend` / nrow(rv$filtered_data)) * 100, 2),
         `CPC/CPM` = ifelse(
           grepl("Impressions", VariableName, ignore.case = TRUE),
           ifelse(Activity > 0, round((Spend / Activity) * 1000, 2), NA),
           ifelse(Activity > 0, round((Spend / Activity), 2), NA)
         )
-      ) %>%
-      mutate(across(where(is.numeric), ~ formatC(., format = "f", big.mark = ",", digits = 2))) %>%
+      )
+    
+    # Seleccionar columnas finales
+    rag_mapping %>%
       select(
-        VariableName, VariableSpend, Geography, Type, Activity, Spend, 
-        `Activity Percentage`, `Spend Percentage`, `Activity # weeks`, 
-        `Activity distribution`, `Spend # weeks`, `Spend Distribution`, `CPC/CPM`
+        `VariableName`, `Variable Spend`, Type, Geography, Activity, Spend,
+        `Activity Percentage`, `Spend Percentage`,
+        `# Weeks Activity`, `Activity Distribution`,
+        `# Weeks Spend`, `Spend Distribution`, `CPC/CPM`
       ) %>%
       arrange(Type, Geography)
   })
   
-  # Renderizar la tabla con un tamaño más pequeño para las letras
+  # Renderizar la tabla
   output$consolidated_table <- renderTable({
     consolidated_table()
-  }, striped = TRUE, bordered = TRUE, hover = TRUE, align = 'l', 
-  spacing = "xs") # Esto ajusta el espaciado y reduce visualmente la tabla
+  })
   
+  # Descargar la tabla consolidada
+  output$download_consolidated <- downloadHandler(
+    filename = function() {
+      paste("Summary_Table", Sys.Date(), ".csv", sep = "")
+    },
+    content = function(file) {
+      write.csv(consolidated_table(), file, row.names = FALSE)
+    }
+  )
   
   # UNIVARIATE TAB ----------------------------------------------------------
   
@@ -454,24 +552,66 @@ server <- function(input, output, session) {
   })
   
   # 4. Texto con transformaciones aplicadas
+  
   output$transformations_summary_univ <- renderPrint({
     req(input$transformation_univ, filtered_geography_data(), input$variable_univ)
     
-    # Calcular el valor máximo para el boxplot
+    # Obtener los datos para la variable seleccionada
     box_data <- filtered_geography_data()[[input$variable_univ]]
-    box_max <- max(box_data, na.rm = TRUE)
     
-    # Mostrar información
-    cat("Selected Transformation:", input$transformation_univ, "\n")
-    if (input$transformation_univ %in% c("S Origin", "S Shaped")) {
-      cat("Alpha:", input$alpha_univ, "\n")
-      cat("Beta:", input$beta_univ, "\n")
-      cat("MaxVal%:", input$maxval_univ, "\n")
+    # Verificar que hay suficientes datos
+    if (length(box_data) < 1 || all(is.na(box_data))) {
+      cat("No data available for the selected variable.\n")
+      return()
     }
-    cat("Decay:", input$decay_univ, "\n")
-    cat("Lag:", input$lag_univ, "\n")
-    cat("Max Value (Boxplot):", box_max, "\n")
-    cat("Geography Selected:", input$geography_univ, "\n")
+    
+    # 1. Max Value (Boxplot, no outliers)
+    q1 <- quantile(box_data, 0.25, na.rm = TRUE)
+    q3 <- quantile(box_data, 0.75, na.rm = TRUE)
+    iqr <- q3 - q1
+    upper_limit <- q3 + 1.5 * iqr
+    max_not_outlier <- ifelse(max(box_data, na.rm = TRUE) > upper_limit, upper_limit, max(box_data, na.rm = TRUE))
+    maxval_percent_boxplot <- (max_not_outlier / max(box_data, na.rm = TRUE)) * 100
+    
+    # 2. Max Value (Three SD)
+    data_mean <- mean(box_data, na.rm = TRUE)
+    data_sd <- sd(box_data, na.rm = TRUE)
+    three_sd_value <- data_mean + 3 * data_sd
+    maxval_percent_three_sd <- (three_sd_value / max(box_data, na.rm = TRUE)) * 100
+    
+    # 3. Max Value (Average Mean-Max)
+    avg_mean_max <- (data_mean + max(box_data, na.rm = TRUE)) / 2
+    maxval_percent_avg <- (avg_mean_max / max(box_data, na.rm = TRUE)) * 100
+    
+    # 4. Suggested MaxVal% (Script Method)
+    car_boxplot <- tryCatch(
+      expr = {
+        car::Boxplot(box_data, id.method = "y", plot = FALSE)
+      },
+      error = function(e) {
+        NULL
+      }
+    )
+    
+    if (is.null(car_boxplot) || length(car_boxplot$out) == 0) {
+      suggested_max_val_perc <- 100
+    } else {
+      outliers_from_boxplot <- min(car_boxplot$out, na.rm = TRUE)
+      
+      min_outlier <- min(box_data[box_data > outliers_from_boxplot], na.rm = TRUE)
+      
+      max_no_outlier <- max(box_data[box_data < min_outlier], na.rm = TRUE)
+      
+      max_activity <- max(box_data, na.rm = TRUE)
+      
+      suggested_max_val_perc <- (max_no_outlier / max_activity) * 100
+    }
+    
+    # Mostrar información de todas las métricas
+    cat("Max Value % (Boxplot, no outliers):", round(maxval_percent_boxplot, 2), "%\n")
+    cat("Max Value % (Three SD):", round(maxval_percent_three_sd, 2), "%\n")
+    cat("Max Value % (Average Mean-Max):", round(maxval_percent_avg, 2), "%\n")
+    cat("Suggested Max Value % (Car Method):", round(suggested_max_val_perc, 2), "%\n")
   })
   
   

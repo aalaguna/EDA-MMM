@@ -552,24 +552,66 @@ server <- function(input, output, session) {
   })
   
   # 4. Texto con transformaciones aplicadas
+ 
   output$transformations_summary_univ <- renderPrint({
     req(input$transformation_univ, filtered_geography_data(), input$variable_univ)
     
-    # Calcular el valor máximo para el boxplot
+    # Obtener los datos para la variable seleccionada
     box_data <- filtered_geography_data()[[input$variable_univ]]
-    box_max <- max(box_data, na.rm = TRUE)
     
-    # Mostrar información
-    cat("Selected Transformation:", input$transformation_univ, "\n")
-    if (input$transformation_univ %in% c("S Origin", "S Shaped")) {
-      cat("Alpha:", input$alpha_univ, "\n")
-      cat("Beta:", input$beta_univ, "\n")
-      cat("MaxVal%:", input$maxval_univ, "\n")
+    # Verificar que hay suficientes datos
+    if (length(box_data) < 1 || all(is.na(box_data))) {
+      cat("No data available for the selected variable.\n")
+      return()
     }
-    cat("Decay:", input$decay_univ, "\n")
-    cat("Lag:", input$lag_univ, "\n")
-    cat("Max Value (Boxplot):", box_max, "\n")
-    cat("Geography Selected:", input$geography_univ, "\n")
+    
+    # 1. Max Value (Boxplot, no outliers)
+    q1 <- quantile(box_data, 0.25, na.rm = TRUE)
+    q3 <- quantile(box_data, 0.75, na.rm = TRUE)
+    iqr <- q3 - q1
+    upper_limit <- q3 + 1.5 * iqr
+    max_not_outlier <- ifelse(max(box_data, na.rm = TRUE) > upper_limit, upper_limit, max(box_data, na.rm = TRUE))
+    maxval_percent_boxplot <- (max_not_outlier / max(box_data, na.rm = TRUE)) * 100
+    
+    # 2. Max Value (Three SD)
+    data_mean <- mean(box_data, na.rm = TRUE)
+    data_sd <- sd(box_data, na.rm = TRUE)
+    three_sd_value <- data_mean + 3 * data_sd
+    maxval_percent_three_sd <- (three_sd_value / max(box_data, na.rm = TRUE)) * 100
+    
+    # 3. Max Value (Average Mean-Max)
+    avg_mean_max <- (data_mean + max(box_data, na.rm = TRUE)) / 2
+    maxval_percent_avg <- (avg_mean_max / max(box_data, na.rm = TRUE)) * 100
+    
+    # 4. Suggested MaxVal% (Script Method)
+    car_boxplot <- tryCatch(
+      expr = {
+        car::Boxplot(box_data, id.method = "y", plot = FALSE)
+      },
+      error = function(e) {
+        NULL
+      }
+    )
+    
+    if (is.null(car_boxplot) || length(car_boxplot$out) == 0) {
+      suggested_max_val_perc <- 100
+    } else {
+      outliers_from_boxplot <- min(car_boxplot$out, na.rm = TRUE)
+      
+      min_outlier <- min(box_data[box_data > outliers_from_boxplot], na.rm = TRUE)
+      
+      max_no_outlier <- max(box_data[box_data < min_outlier], na.rm = TRUE)
+      
+      max_activity <- max(box_data, na.rm = TRUE)
+      
+      suggested_max_val_perc <- (max_no_outlier / max_activity) * 100
+    }
+    
+    # Mostrar información de todas las métricas
+    cat("Max Value % (Boxplot, no outliers):", round(maxval_percent_boxplot, 2), "%\n")
+    cat("Max Value % (Three SD):", round(maxval_percent_three_sd, 2), "%\n")
+    cat("Max Value % (Average Mean-Max):", round(maxval_percent_avg, 2), "%\n")
+    cat("Suggested Max Value % (Car Method):", round(suggested_max_val_perc, 2), "%\n")
   })
   
   
