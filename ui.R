@@ -294,111 +294,113 @@ ui <- fluidPage(
     
     # MULTIVARIATE TAB --------------------------------------------------------
     
-    # Tab MULTIVARIATE (sin sidebar)
     tabPanel("Multivariate",
              fluidPage(
+               # Global Filters
                fluidRow(
+                 column(12,
+                        wellPanel(
+                          h4("Global Filters", class = "section-title"),
+                          fluidRow(
+                            column(2, selectInput("geography_multi", "Geography", choices = NULL)),
+                            column(2, selectInput("product_multi", "Product", choices = c("Product A", "Product B", "Product C"))),
+                            column(2, selectInput("campaign_multi", "Campaign", choices = c("Campaign 1", "Campaign 2", "Campaign 3"))),
+                            column(2, selectInput("outlet_multi", "Outlet", choices = c("Outlet X", "Outlet Y", "Outlet Z"))),
+                            column(2, selectInput("creative_multi", "Creative", choices = c("Creative 1", "Creative 2", "Creative 3")))
+                          )
+                        )
+                 )
+               ),
+               
+               # Main Content
+               fluidRow(
+                 # Variable Selection
                  column(3,
                         wellPanel(
                           h4("Variable Selection", class = "section-title"),
                           prettyRadioButtons("sum_all_vars", "Sum all variables",
                                              choices = c("Yes" = "true", "No" = "false"),
-                                             inline = TRUE, status = "primary"
-                          ),
+                                             inline = TRUE, status = "primary"),
                           selectInput("kpi_multi", "KPI", choices = NULL),
                           selectInput("var1_multi", "Variable 1", choices = NULL),
                           selectInput("var2_multi", "Variable 2", choices = NULL),
                           selectInput("var3_multi", "Variable 3", choices = NULL),
                           selectInput("var4_multi", "Variable 4", choices = c("None" = "None")),
                           
+                          h4("Transformation", class = "section-title mt-4"),
+                          radioButtons("transformation_multi", NULL,
+                                       choices = c("Linear", "S Origin", "S Shaped", "Index Exp",
+                                                   "Log", "Exp", "Power", "Moving Avg"),
+                                       selected = "Linear")
+                        )
+                 ),
+                 
+                 # Transformation Settings and Charts
+                 column(9,
+                        fluidRow(
+                          column(12,
+                                 wellPanel(
+                                   h4("Transformation Settings", class = "section-title"),
+                                   fluidRow(
+                                     column(2, numericInput("decay_multi", "Decay", value = 1, min = 0, step = 0.1)),
+                                     column(2, numericInput("lag_multi", "Lag", value = 0, min = 0)),
+                                     conditionalPanel(
+                                       condition = "input.transformation_multi == 'S Origin' || input.transformation_multi == 'S Shaped'",
+                                       column(2, numericInput("alpha_multi", "Alpha", value = 0.85, min = 0, step = 0.01)),
+                                       column(2, numericInput("beta_multi", "Beta", value = 1, min = 0, step = 0.1)),
+                                       column(2, numericInput("maxval_multi", "% MaxVal", value = 100, min = 0, step = 1))
+                                     )
+                                   )
+                                 )
+                          )
+                        ),
+                        
+                        # Dynamic Chart Display
+                        fluidRow(
                           conditionalPanel(
-                            condition = "input.sum_all_vars == 'true'",
-                            div(class = "transformation-options",
-                                h4("Variable Transformations", class = "section-title mt-4"),
-                                selectInput("trans_var1", "Transform Variable 1",
-                                            choices = c("Linear", "S Origin", "S Shaped", "Log", "Exp", "Power")),
-                                selectInput("trans_var2", "Transform Variable 2",
-                                            choices = c("Linear", "S Origin", "S Shaped", "Log", "Exp", "Power")),
-                                selectInput("trans_var3", "Transform Variable 3",
-                                            choices = c("Linear", "S Origin", "S Shaped", "Log", "Exp", "Power")),
-                                selectInput("trans_var4", "Transform Variable 4",
-                                            choices = c("Linear", "S Origin", "S Shaped", "Log", "Exp", "Power"))
+                            condition = "input.transformation_multi == 'S Origin' || input.transformation_multi == 'S Shaped'",
+                            column(12,
+                                   div(class = "chart-box mt-3",
+                                       h4("S-Curve EDA", class = "chart-title"),
+                                       plotlyOutput("s_curve_multivariate_plot", height = "300px")
+                                   )
+                            )
+                          ),
+                          conditionalPanel(
+                            condition = "!(input.transformation_multi == 'S Origin' || input.transformation_multi == 'S Shaped')",
+                            column(6,
+                                   div(class = "chart-box",
+                                       h4("Variable Flighting", class = "chart-title"),
+                                       plotlyOutput("variable_flighting_chart_multi", height = "300px")
+                                   )
+                            ),
+                            column(6,
+                                   div(class = "chart-box",
+                                       h4("Transformed Variable", class = "chart-title"),
+                                       plotlyOutput("var_transf_chart_multi", height = "300px")
+                                   )
                             )
                           )
                         )
+                 )
+               ),
+               
+               # Boxplot and Summary
+               fluidRow(
+                 column(6,
+                        div(class = "chart-box",
+                            h4("Boxplot", class = "chart-title"),
+                            plotOutput("boxplot_multi", height = "300px")
+                        )
                  ),
-                 column(9,
-                        div(class = "analysis-content",
-                            conditionalPanel(
-                              condition = "input.sum_all_vars == 'true'",
-                              wellPanel(
-                                h4("Transformation Settings", class = "section-title"),
-                                fluidRow(
-                                  column(2,
-                                         numericInput("decay_multi", "Decay",
-                                                      value = 1, min = 0, step = 0.1)),
-                                  column(2,
-                                         numericInput("lag_multi", "Lag",
-                                                      value = 0, min = 0)),
-                                  column(2,
-                                         numericInput("alpha_multi", "Alpha",
-                                                      value = 0.85, min = 0, step = 0.01)),
-                                  column(2,
-                                         numericInput("beta_multi", "Beta",
-                                                      value = 1, min = 0, step = 0.1)),
-                                  column(2,
-                                         numericInput("maxval_multi", "% MaxVal",
-                                                      value = 100, min = 0, step = 1))
-                                )
-                              )
-                            ),
-                            
-                            div(class = "charts-container",
-                                fluidRow(
-                                  column(6,
-                                         div(class = "chart-box",
-                                             h4("Variables Chart", class = "chart-title"),
-                                             plotOutput("variables_chart_multi", height = "350px")
-                                         )
-                                  ),
-                                  column(6,
-                                         div(class = "chart-box",
-                                             h4("Distribution Analysis", class = "chart-title"),
-                                             plotOutput("boxplot_multi", height = "250px")
-                                         )
-                                  )
-                                ),
-                                
-                                fluidRow(
-                                  column(12,
-                                         div(class = "chart-box",
-                                             h4("Correlation Analysis", class = "chart-title"),
-                                             plotOutput("corr_matrix_multi", height = "250px")
-                                         )
-                                  )
-                                ),
-                                
-                                # S-Curve EDA Multivariado (también condicional)
-                                conditionalPanel(
-                                  condition = "input.trans_var1 == 'S Origin' || input.trans_var2 == 'S Origin' ||
-                                   input.trans_var3 == 'S Origin' || input.trans_var4 == 'S Origin'",
-                                  fluidRow(
-                                    column(12,
-                                           div(class = "chart-box shadow",
-                                               h4("S-Curve EDA Multivariate",
-                                                  class = "chart-title"),
-                                               plotlyOutput("s_curve_multivariate_plot",
-                                                            height = "400px")
-                                           )
-                                    )
-                                  )
-                                )
-                            )
+                 column(6,
+                        div(class = "chart-box",
+                            h4("Suggested Max Value", class = "chart-title"),
+                            verbatimTextOutput("transformations_summary_multi", placeholder = TRUE)
                         )
                  )
                )
              )
     )
-    
   )
 )
