@@ -435,6 +435,19 @@ server <- function(input, output, session) {
   # Renderizar la tabla
   output$consolidated_table <- renderTable({
     consolidated_table()
+    
+    
+    # Formato comas
+    
+    table <- table %>% 
+      mutate(
+        Activity = format(Activity, big.mark = ",", decimal.mark = ".", nsmall = 2),
+        Spend = format(Spend, big.mark = ",", decimal.mark = ".", nsmall = 2),
+        `Activity Percentage` = format(`Activity Percentage`, big.mark = ",", decimal.mark = ".", nsmall = 2),
+        `Spend Percentage` = format(`Spend Percentage`, big.mark = ",", decimal.mark = ".", nsmall = 2),
+        `CPM/CPC` = format(`CPM/CPC`, big.mark = ",", decimal,mark = ".", nsmall = 2)
+      )
+    table
   })
   
   # Descargar la tabla consolidada
