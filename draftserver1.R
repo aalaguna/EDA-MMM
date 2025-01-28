@@ -325,7 +325,6 @@ server <- function(input, output, session) {
     media_vars <- input$media_vars
     spend_vars <- input$spend_vars
     
-    # Validación: Verificar que las variables existen en el dataset
     missing_media_vars <- setdiff(media_vars, names(rv$filtered_data))
     missing_spend_vars <- setdiff(spend_vars, names(rv$filtered_data))
     
@@ -338,7 +337,7 @@ server <- function(input, output, session) {
       return(NULL)
     }
     
-    # Pivotar datos de media_vars a formato largo
+    # Pivotear datos de media_vars a formato largo
     data_long <- rv$filtered_data %>%
       pivot_longer(
         cols = all_of(media_vars),
@@ -347,7 +346,7 @@ server <- function(input, output, session) {
       ) %>%
       filter(VariableValue > 0)
     
-    # Cálculo de actividad para cada Geography y VariableName
+    # Identificar variables RAG y No rag - calculos actividad
     rag_mapping <- data_long %>%
       group_by(Geography, VariableName) %>%
       summarise(
@@ -363,7 +362,7 @@ server <- function(input, output, session) {
       ) %>%
       ungroup()
     
-    # Asignar Variable Spend correspondiente
+    # Match con Variable Spend correspondiente
     rag_mapping <- rag_mapping %>%
       mutate(
         `Variable Spend` = map_chr(
@@ -437,6 +436,7 @@ server <- function(input, output, session) {
     consolidated_table()
   })
   
+
   # Descargar la tabla consolidada
   output$download_consolidated <- downloadHandler(
     filename = function() {
@@ -683,85 +683,214 @@ server <- function(input, output, session) {
 
 
   # MULTIVARIATE TAB --------------------------------------------------------
+
+  # output$variables_chart_multi <- renderPlot({
+  #   req(rv$filtered_data, input$var1_multi, input$var2_multi, input$var3_multi)
+  #   
+  #   data_chart <- rv$filtered_data
+  #   date_col <- if("Period" %in% names(data_chart)) "Period" else "periodo"
+  #   
+  #   vars_to_select <- c(input$var1_multi, input$var2_multi, input$var3_multi)
+  #   if(input$var4_multi != "None"){
+  #     vars_to_select <- c(vars_to_select, input$var4_multi)
+  #   }
+  #   
+  #   plot_data <- data_chart %>%
+  #     select(all_of(vars_to_select), !!sym(date_col)) %>%
+  #     pivot_longer(cols = all_of(vars_to_select),
+  #                  names_to = "variable",
+  #                  values_to = "value")
+  #   
+  #   # Si sum_all_vars == "true", transformamos cada variable
+  #   if(input$sum_all_vars == "true"){
+  #     for(var_i in unique(plot_data$variable)) {
+  #       
+  #       # Determinamos el tipo de transformación según la variable actual
+  #       trans_type <- if(var_i == input$var1_multi){
+  #         input$trans_var1
+  #       } else if(var_i == input$var2_multi){
+  #         input$trans_var2
+  #       } else if(var_i == input$var3_multi){
+  #         input$trans_var3
+  #       } else if(var_i == input$var4_multi){
+  #         input$trans_var4
+  #       } else {
+  #         "Linear"
+  #       }
+  #       
+  #       idx <- plot_data$variable == var_i
+  #       plot_data$value[idx] <- apply_transformation(
+  #         plot_data$value[idx],
+  #         trans_type,
+  #         alpha  = input$alpha_multi,
+  #         beta   = input$beta_multi,
+  #         maxval = input$maxval_multi,
+  #         decay  = input$decay_multi,
+  #         lag    = input$lag_multi
+  #       )
+  #     }
+  #   }
+  #   
+  #   ggplot(plot_data, aes_string(x = date_col, y = "value", color = "variable")) +
+  #     geom_line() +
+  #     theme_minimal() +
+  #     labs(title = "Multiple Variables over Time",
+  #          x = "Period",
+  #          y = "Value") +
+  #     theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  # })
+  # 
+  # output$boxplot_multi <- renderPlot({
+  #   req(rv$filtered_data, input$var1_multi, input$var2_multi, input$var3_multi)
+  #   
+  #   vars_to_select <- c(input$var1_multi, input$var2_multi, input$var3_multi)
+  #   if(input$var4_multi != "None"){
+  #     vars_to_select <- c(vars_to_select, input$var4_multi)
+  #   }
+  #   
+  #   plot_data <- rv$filtered_data %>%
+  #     select(all_of(vars_to_select)) %>%
+  #     pivot_longer(cols = everything(),
+  #                  names_to = "variable",
+  #                  values_to = "value") %>%
+  #     filter(!is.na(value))
+  #   
+  #   ggplot(plot_data, aes(x = variable, y = as.numeric(value))) +
+  #     geom_boxplot() +
+  #     theme_minimal() +
+  #     labs(title = "Distribution of Variables", x = "Variable", y = "Value") +
+  #     theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  # })
   
-  
-  output$variables_chart_multi <- renderPlot({
+  output$variables_chart_multi <- renderPlotly({
     req(rv$filtered_data, input$var1_multi, input$var2_multi, input$var3_multi)
     
     data_chart <- rv$filtered_data
-    date_col <- if("Period" %in% names(data_chart)) "Period" else "periodo"
+    date_col <- if ("Period" %in% names(data_chart)) "Period" else "periodo"
     
+    # Selección de variables
     vars_to_select <- c(input$var1_multi, input$var2_multi, input$var3_multi)
-    if(input$var4_multi != "None"){
+    if (input$var4_multi != "None") {
       vars_to_select <- c(vars_to_select, input$var4_multi)
     }
     
-    plot_data <- data_chart %>%
-      select(all_of(vars_to_select), !!sym(date_col)) %>%
-      pivot_longer(cols = all_of(vars_to_select),
-                   names_to = "variable",
-                   values_to = "value")
-    
-    # Si sum_all_vars == "true", transformamos cada variable
-    if(input$sum_all_vars == "true"){
-      for(var_i in unique(plot_data$variable)) {
+    # Crear una nueva variable sumada si "Sum all variables" está activado
+    if (input$sum_all_vars == "true") {
+      data_chart <- data_chart %>%
+        mutate(Sum_Variables = rowSums(select(., all_of(vars_to_select)), na.rm = TRUE))
+      
+      # Verificar si la transformación es "Linear" o cualquier otra
+      if (input$trans_var1 == "Linear") {
+        # Si es "Linear", no transformamos la nueva variable
+        plot_data <- data_chart %>%
+          select(!!sym(date_col), Sum_Variables) %>%
+          rename(value = Sum_Variables) %>%
+          mutate(variable = "Sum_Variables")
+      } else {
+        # Aplicar transformación a la nueva variable sumada
+        data_chart <- data_chart %>%
+          mutate(Sum_Variables_Transformed = apply_transformation(
+            Sum_Variables,
+            input$trans_var1,
+            alpha  = input$alpha_multi,
+            beta   = input$beta_multi,
+            maxval = input$maxval_multi,
+            decay  = input$decay_multi,
+            lag    = input$lag_multi
+          ))
         
-        # Determinamos el tipo de transformación según la variable actual
-        trans_type <- if(var_i == input$var1_multi){
-          input$trans_var1
-        } else if(var_i == input$var2_multi){
-          input$trans_var2
-        } else if(var_i == input$var3_multi){
-          input$trans_var3
-        } else if(var_i == input$var4_multi){
-          input$trans_var4
-        } else {
-          "Linear"
-        }
-        
-        idx <- plot_data$variable == var_i
-        plot_data$value[idx] <- apply_transformation(
-          plot_data$value[idx],
-          trans_type,
-          alpha  = input$alpha_multi,
-          beta   = input$beta_multi,
-          maxval = input$maxval_multi,
-          decay  = input$decay_multi,
-          lag    = input$lag_multi
-        )
+        # Preparar los datos para graficar
+        plot_data <- data_chart %>%
+          select(!!sym(date_col), Sum_Variables_Transformed) %>%
+          rename(value = Sum_Variables_Transformed) %>%
+          mutate(variable = "Sum_Variables")
       }
+    } else {
+      # Si no se suman las variables, graficar cada una por separado
+      plot_data <- data_chart %>%
+        select(all_of(vars_to_select), !!sym(date_col)) %>%
+        pivot_longer(
+          cols = all_of(vars_to_select),
+          names_to = "variable",
+          values_to = "value"
+        )
     }
     
-    ggplot(plot_data, aes_string(x = date_col, y = "value", color = "variable")) +
-      geom_line() +
+    # Crear el gráfico con ggplotly
+    p <- ggplot(plot_data, aes_string(x = date_col, y = "value", color = "variable")) +
+      geom_line(size = 1) +
       theme_minimal() +
-      labs(title = "Multiple Variables over Time",
-           x = "Period",
-           y = "Value") +
+      labs(
+        title = if (input$sum_all_vars == "true") "Sum of Variables over Time" else "Multiple Variables over Time",
+        x = "Period",
+        y = "Value"
+      ) +
       theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    
+    ggplotly(p)
   })
   
-  output$boxplot_multi <- renderPlot({
+  
+  
+  output$s_curve_multivariate_plot <- renderPlotly({
     req(rv$filtered_data, input$var1_multi, input$var2_multi, input$var3_multi)
     
-    vars_to_select <- c(input$var1_multi, input$var2_multi, input$var3_multi)
-    if(input$var4_multi != "None"){
-      vars_to_select <- c(vars_to_select, input$var4_multi)
+    vars_to_sum <- c(input$var1_multi, input$var2_multi, input$var3_multi)
+    if (input$var4_multi != "None") {
+      vars_to_sum <- c(vars_to_sum, input$var4_multi)
     }
     
-    plot_data <- rv$filtered_data %>%
-      select(all_of(vars_to_select)) %>%
-      pivot_longer(cols = everything(),
-                   names_to = "variable",
-                   values_to = "value") %>%
-      filter(!is.na(value))
+    # Asegurar que las variables existen en los datos
+    available_vars <- vars_to_sum[vars_to_sum %in% names(rv$filtered_data)]
+    if (length(available_vars) == 0) {
+      showNotification("No variables available for S-Curve Multivariate.", type = "error")
+      return(NULL)
+    }
     
-    ggplot(plot_data, aes(x = variable, y = as.numeric(value))) +
-      geom_boxplot() +
-      theme_minimal() +
-      labs(title = "Distribution of Variables", x = "Variable", y = "Value") +
-      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    # Crear una nueva variable sumada
+    sum_variable <- rowSums(rv$filtered_data[available_vars], na.rm = TRUE)
+    
+    # Crear un dataframe para la S-Curve
+    df_scurve_multi <- rv$filtered_data %>%
+      mutate(Period = if ("Period" %in% names(.)) as.Date(Period)
+             else if ("periodo" %in% names(.)) as.Date(periodo)
+             else as.Date(NA)) %>%
+      mutate(value = sum_variable) %>%
+      select(Period, value) %>%
+      filter(!is.na(Period))
+    
+    if (nrow(df_scurve_multi) == 0) {
+      showNotification("No data available for S-Curve Multivariate.", type = "error")
+      return(NULL)
+    }
+    
+    # Aplicar transformación S-Curve
+    var_name <- "Sum of Selected Variables"
+    alpha    <- input$alpha_multi
+    beta     <- input$beta_multi
+    max_val_pct <- input$maxval_multi
+    decay    <- input$decay_multi
+    lag      <- input$lag_multi
+    
+    s_curve_plot_gg <- tryCatch({
+      create_s_curve_chart(
+        data_chart  = df_scurve_multi,
+        alpha       = alpha,
+        beta        = beta,
+        max_val_pct = max_val_pct,
+        decay       = decay,
+        lag         = lag,
+        var_name    = var_name
+      )
+    }, error = function(e) {
+      showNotification(paste("Error in S-Curve Chart Multivariate:", e$message),
+                       type = "error")
+      return(NULL)
+    })
+    
+    s_curve_plot_gg
   })
+  
   
   output$corr_matrix_multi <- renderPlot({
     req(rv$filtered_data, input$var1_multi, input$var2_multi, input$var3_multi)
