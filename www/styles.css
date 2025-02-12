@@ -1,272 +1,199 @@
-/* Global Styles and Variables */
-:root {
-    --primary-color: #2c3e50;
-    --secondary-color: #3498db;
-    --accent-color: #e74c3c;
-    --background-light: #f8f9fa;
-    --text-color: #2c3e50;
-    --border-color: #dee2e6;
-    --success-color: #2ecc71;
-    --warning-color: #f1c40f;
-    --box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
+/* www/styles.css */
+/* =============================================================================
+   Estilos Personalizados para la Aplicación Shiny EDA
 
-/* Base Styles */
+   Este archivo CSS centraliza y organiza todos los estilos de la aplicación Shiny
+   EDA. Se divide en secciones temáticas para facilitar la mantenibilidad,
+   reducir la redundancia y mejorar la claridad del código CSS.
+
+   Cada sección está comentada para explicar su propósito y los estilos que contiene.
+   ============================================================================ */
+
+/* =============================================================================
+   Sección: Estilos Generales y Reset
+   Estilos base para el body, tipografía y elementos comunes.
+   Incluye un ligero "reset" para asegurar una base consistente entre navegadores.
+   ============================================================================ */
 body {
-    font-family: 'Roboto', sans-serif;
-    color: var(--text-color);
-    background-color: var(--background-light);
-    line-height: 1.6;
+  font-family: 'Roboto', sans-serif; /* Fuente principal para todo el cuerpo */
+  background-color: #f8f9fa;       /* Color de fondo general de la aplicación */
+  margin: 0;                       /* Elimina márgenes por defecto del body */
+  padding: 0;                      /* Elimina padding por defecto del body */
 }
 
-/* Header Styles */
-.app-header {
-    background-color: var(--primary-color);
-    padding: 2rem;
-    margin-bottom: 2rem;
-    box-shadow: var(--box-shadow);
+/* =============================================================================
+   Sección: Estilos para Contenedores y Secciones (Cards)
+   Define estilos para los contenedores principales que agrupan el contenido
+   en secciones visualmente distintas (tarjetas o "cards").
+   ============================================================================ */
+.section-card {
+  background: #ffffff;             /* Fondo blanco para las tarjetas de sección */
+  border-radius: 8px;             /* Bordes ligeramente redondeados */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.08); /* Sombra suave para dar elevación */
+  margin-bottom: 20px;            /* Espacio inferior entre tarjetas */
+  padding: 25px;                  /* Relleno interno para el contenido de las tarjetas */
+  border: 1px solid #e0e0e0;       /* Borde sutil para delimitar visualmente */
+  transition: box-shadow 0.3s ease; /* Transición suave para la sombra al pasar el ratón */
 }
 
-.title-container {
-    text-align: center;
-}
-
-.main-title {
-    color: white;
-    font-size: 2.5rem;
-    font-weight: 500;
-    margin: 0;
-}
-
-.subtitle {
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 1.1rem;
-    margin-top: 0.5rem;
-}
-
-/* Sidebar Styles */
-.custom-sidebar {
-    background-color: white;
-    border-radius: 8px;
-    padding: 1.5rem;
-    box-shadow: var(--box-shadow);
+.section-card:hover {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.12); /* Sombra más pronunciada al pasar el ratón */
 }
 
 .section-title {
-    color: var(--primary-color);
-    font-weight: 500;
-    margin-bottom: 1.5rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid var(--secondary-color);
-}
-
-.subsection-title {
-    color: var(--primary-color);
-    font-weight: 500;
-    margin-top: 1.5rem;
-}
-
-/* Input Styles */
-.custom-select {
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    padding: 8px;
-    margin-bottom: 1rem;
-    width: 100%;
-    background-color: white;
-}
-
-.selectize-input {
-    white-space: nowrap;        /* Evita que el texto ocupe varias líneas */
-    overflow: hidden;           /* Esconde el texto que no cabe */
-    text-overflow: ellipsis;    /* Agrega "..." al final del texto */
-    max-width: 100%;            /* Asegura que no crezca más que el contenedor */NEW
-}
-
-
-.custom-numeric {
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    padding: 8px;
-    width: 100%;
-}
-
-.custom-date-range {
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    padding: 8px;
-    margin-bottom: 1rem;
-}
-
-/* Button Styles */
-.custom-download-btn {
-    background-color: var(--secondary-color);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 10px 20px;
-    font-weight: 500;
-    transition: background-color 0.3s ease;
-}
-
-.custom-download-btn:hover {
-    background-color: #2980b9;
-}
-
-/* Container Styles */
-.info-container, .analysis-container {
-    background-color: white;
-    border-radius: 8px;
-    padding: 1.5rem;
-    margin-bottom: 2rem;
-    box-shadow: var(--box-shadow);
-}
-
-.charts-container {
-    background-color: white;
-    border-radius: 8px;
-    padding: 1.5rem;
-    margin-top: 1rem;
-}
-
-/* Box Styles */
-.info-box, .filter-box, .settings-box, .chart-box {
-    background-color: white;
-    border-radius: 8px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    box-shadow: var(--box-shadow);
+  color: #2c3e50;                 /* Color del texto para los títulos de sección */
+  font-size: 1.4rem;               /* Tamaño de fuente para los títulos de sección (relativo al tamaño base) */
+  font-weight: 600;               /* Grosor de fuente seminegrita para los títulos */
+  margin-bottom: 20px;            /* Espacio inferior debajo de los títulos */
+  padding-bottom: 10px;           /* Relleno inferior para separar el título de la línea inferior */
+  border-bottom: 2px solid #3498db; /* Línea inferior decorativa para los títulos de sección */
 }
 
 .chart-box {
-    height: 100%;
+  background: #ffffff;             /* Fondo blanco para los contenedores de gráficos */
+  border-radius: 8px;             /* Bordes redondeados para los gráficos */
+  padding: 15px;                  /* Relleno interno para los gráficos */
+  margin-bottom: 20px;            /* Espacio inferior debajo de los contenedores de gráficos */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra suave para los contenedores de gráficos */
 }
 
-.selection-box {
-    background-color: white;
-    border-radius: 8px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    box-shadow: var(--box-shadow);
+.chart-title {
+  color: #2c3e50;                 /* Color del texto para los títulos de gráficos */
+  font-size: 1.1rem;               /* Tamaño de fuente para los títulos de gráficos */
+  font-weight: 500;               /* Grosor de fuente medio para los títulos de gráficos */
+  margin-bottom: 12px;            /* Espacio inferior debajo de los títulos de gráficos */
 }
 
-/* Table Styles */
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 1rem;
+/* =============================================================================
+   Sección: Estilos para Controles de Formulario y Selectores
+   Estilos para inputs, selectores y elementos relacionados con formularios.
+   ============================================================================ */
+.variable-select {
+  margin-bottom: 15px;            /* Espacio inferior para los selectores de variables */
 }
 
-th {
-    background-color: var(--background-light);
-    color: var(--primary-color);
-    font-weight: 500;
-    padding: 12px;
-    text-align: left;
-    border-bottom: 2px solid var(--border-color);
+.variable-select .selectize-input {
+  border-radius: 6px;             /* Bordes redondeados para los inputs de selectize (selectores) */
+  border: 1px solid #dce4ec;       /* Borde estándar para los inputs de selectize */
 }
 
-td {
-    padding: 12px;
-    border-bottom: 1px solid var(--border-color);
+.variable-select .selectize-input.focus {
+  border-color: #3498db;           /* Color del borde al enfocar (seleccionar) el input de selectize */
+  box-shadow: 0 0 0 2px rgba(52,152,219,0.2); /* Sombra suave al enfocar para destacar el input */
 }
 
-/* Plot Styles */
-.custom-plot {
-    background-color: white;
-    border-radius: 4px;
-    padding: 1rem;
+.pretty-radio {
+  margin: 10px 0;                 /* Espacio vertical para los radio buttons de prettyRadioButtons */
 }
 
-/* Radio Button Styles */
-.custom-radio {
-    margin-bottom: 1rem;
+.date-range-picker {
+  margin-top: 15px;               /* Margen superior para el selector de rango de fechas */
+  padding: 15px;                  /* Relleno interno para el selector de rango de fechas */
+  background: #f8f9fa;           /* Fondo ligero para el selector de rango de fechas */
+  border-radius: 6px;             /* Bordes redondeados para el selector de rango de fechas */
 }
 
-.custom-radio .radio {
-    margin-bottom: 0.5rem;
+
+/* =============================================================================
+   Sección: Estilos Panel Information - Específicos
+   Estilos particulares para elementos del panel de Información.
+   ============================================================================ */
+.upload-zone {
+  border: 2px dashed #bdc3c7;       /* Borde punteado para la zona de carga de archivos */
+  border-radius: 8px;             /* Bordes redondeados para la zona de carga */
+  padding: 20px;                  /* Relleno interno para la zona de carga */
+  text-align: center;             /* Centrar el texto dentro de la zona de carga */
+  background: #f8f9fa;           /* Fondo ligero para la zona de carga */
+  transition: border-color 0.3s ease, background-color 0.3s ease; /* Transición suave para efectos hover */
 }
 
-/* Transformation Section */
-.transformation-options {
-    background-color: var(--background-light);
-    border-radius: 8px;
-    padding: 1rem;
-    margin-top: 1rem;
+.upload-zone:hover {
+  border-color: #3498db;           /* Color del borde al pasar el ratón sobre la zona de carga */
+  background: #f1f6f9;           /* Fondo ligeramente más oscuro al pasar el ratón */
 }
 
-/* Custom HR */
-.custom-hr {
-    border: 0;
-    height: 1px;
-    background-color: var(--border-color);
-    margin: 1.5rem 0;
+
+.info-badge {
+  display: inline-block;          /* Permite que el badge se comporte como inline pero con propiedades de bloque */
+  padding: 4px 8px;               /* Relleno interno para el badge de información */
+  background: #e1f0fa;           /* Fondo muy ligero para el badge */
+  color: #3498db;                 /* Color del texto para el badge (azul primario) */
+  border-radius: 4px;             /* Bordes redondeados para el badge */
+  font-size: 0.9rem;               /* Tamaño de fuente ligeramente menor para el texto del badge */
+  margin-left: 8px;              /* Espacio a la izquierda del badge para separarlo de otros elementos */
 }
 
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-    .custom-sidebar {
-        margin-bottom: 1.5rem;
-    }
-    
-    .main-title {
-        font-size: 2rem;
-    }
-    
-    .chart-box {
-        margin-bottom: 1.5rem;
-    }
+.summary-table {
+  width: 100%;                    /* Ancho completo para la tabla de resumen */
+  margin-top: 15px;               /* Margen superior para separar la tabla del contenido anterior */
 }
 
-/* Tab Styles */
-.nav-tabs {
-    border-bottom: 2px solid var(--border-color);
-    margin-bottom: 1.5rem;
+.summary-table thead th {
+  background: #f8f9fa;           /* Fondo ligero para la cabecera de la tabla */
+  padding: 12px;                  /* Relleno interno para las celdas de la cabecera */
+  font-weight: 600;               /* Grosor de fuente seminegrita para el texto de la cabecera */
 }
 
-.nav-tabs > li > a {
-    color: var(--text-color);
-    border: none;
-    border-bottom: 2px solid transparent;
-    margin-right: 2px;
-    padding: 10px 20px;
+.summary-table tbody td {
+  padding: 10px;                  /* Relleno interno para las celdas del cuerpo de la tabla */
+  border-top: 1px solid #ecf0f1;   /* Línea superior sutil para separar filas en el cuerpo de la tabla */
 }
 
-.nav-tabs > li.active > a,
-.nav-tabs > li.active > a:focus,
-.nav-tabs > li.active > a:hover {
-    color: var(--secondary-color);
-    background-color: transparent;
-    border: none;
-    border-bottom: 2px solid var(--secondary-color);
+.dimension-info {
+  display: flex;                 /* Utiliza flexbox para alinear los elementos en fila */
+  align-items: center;            /* Alinea verticalmente los elementos al centro */
+  gap: 10px;                     /* Espacio entre los elementos (label y valor) */
+  margin: 10px 0;                /* Margen vertical para separar bloques de información de dimensión */
+  padding: 10px;                  /* Relleno interno para los bloques de información de dimensión */
+  background: #f8f9fa;           /* Fondo ligero para los bloques de información de dimensión */
+  border-radius: 6px;             /* Bordes redondeados para los bloques de información de dimensión */
 }
 
-/* Filter Section Styles */
-.filters-section {
-    margin-bottom: 2rem;
+.dimension-label {
+  font-weight: 600;               /* Grosor de fuente seminegrita para las etiquetas de dimensión */
+  color: #2c3e50;                 /* Color del texto para las etiquetas de dimensión */
+  min-width: 180px;              /* Ancho mínimo para las etiquetas de dimensión para asegurar alineación */
 }
 
-/* Loading Spinner */
-.shiny-spinner {
-    margin-top: 2rem;
+.dimension-value {
+  color: #34495e;                 /* Color del texto para los valores de dimensión (gris más oscuro) */
 }
 
-/* Error Messages */
-.shiny-output-error {
-    color: var(--accent-color);
-    padding: 1rem;
-    margin: 1rem 0;
-    border-radius: 4px;
-    background-color: rgba(231, 76, 60, 0.1);
+
+/* =============================================================================
+   Sección: Estilos Panel Multivariate y Univariate - Controles de Transformación
+   Estilos comunes para los controles de transformación de variables en
+   los paneles Multivariado y Univariado.
+   ============================================================================ */
+.transform-params {
+  display: flex;                    /* Utiliza flexbox para alinear los parámetros en fila */
+  flex-wrap: nowrap !important;     /* Evita que los parámetros se envuelvan a la siguiente línea (importante para el layout) */
+  gap: 10px;                       /* Espacio entre los elementos de parámetros */
+  margin: 0 !important;             /* Elimina márgenes que puedan afectar el layout (importante para el layout) */
 }
 
-tags$style(HTML("
-  .multicol-checkbox {
-    -webkit-column-count: 4; /* Chrome, Safari, Opera */
-    -moz-column-count: 4;    /* Firefox */
-    column-count: 4;
-    -webkit-column-gap: 20px;
-    -moz-column-gap: 20px;
-    column-gap: 20px;
-  }
-"))
+.transform-param-item {
+  flex: 1;                          /* Permite que cada parámetro se expanda para ocupar el espacio disponible */
+  min-width: 0;                     /* Asegura que los elementos no se hagan más pequeños que su contenido */
+  padding: 0 5px;                 /* Relleno horizontal ligero para separar visualmente los parámetros */
+}
+
+
+/* =============================================================================
+   Sección: Estilos para Botones Personalizados
+   Estilos para botones de descarga y otros botones personalizados.
+   (Reutilizado en varios paneles)
+   ============================================================================ */
+.custom-download-btn {
+  background-color: #2ecc71;       /* Color de fondo verde para los botones de descarga */
+  color: white;                     /* Color del texto blanco para los botones de descarga */
+  border: none;                     /* Elimina el borde por defecto de los botones */
+  padding: 8px 16px;               /* Relleno interno para hacer el botón visible y cómodo al clic */
+  border-radius: 4px;             /* Bordes ligeramente redondeados para los botones */
+  transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Transición suave para efectos hover */
+}
+
+.custom-download-btn:hover {
+  background-color: #27ae60;       /* Color de fondo verde más oscuro al pasar el ratón */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Sombra suave al pasar el ratón para dar feedback visual */
+}

@@ -1,0 +1,11 @@
+
+Extracción de CSS:
+Todos los estilos que originalmente se encontraban en la sección tags$style del panel Information se han movido al archivo externo styles.css. Esto facilita el mantenimiento y la escalabilidad del proyecto.
+
+Indicador de Carga (Spinner):
+Se ha utilizado la función withSpinner (del paquete shinycssloaders) en el tableOutput("consolidated_table") para que, durante el tiempo de carga de la tabla (especialmente cuando se manejan grandes volúmenes de datos), el usuario vea un spinner con el color y tipo configurados.
+
+Visualización de la Tabla:
+Se han eliminado las propiedades que forzaban el scroll horizontal (como overflow-x: auto) y se ha establecido table-layout: fixed para que todas las columnas se distribuyan equitativamente en el ancho disponible, permitiendo que se vean todas al mismo tiempo.
+
+Con estas modificaciones se mejora la experiencia del usuario (UI/UX) y se asegura que el código se mantenga modular y escalable para futuros requerimientos.
