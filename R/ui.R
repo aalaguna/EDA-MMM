@@ -1,37 +1,46 @@
+# UI.R
+
 # =============================================================================
-# Interfaz principal de la aplicación (UI).
-# Definida con navbarPage y las pestañas Information, Univariate y Multivariate.
-# Invoca los módulos de UI específicos para cada pestaña.
+# Main interface of the application (UI) with navbarPage and the tabs
+# Information, Univariate, Multivariate, and KPI Transformation.
 # =============================================================================
 
-# Cargar módulos de UI
+# Load the UI modules
 source("R/ui/information_ui.R", local = TRUE)
 source("R/ui/univariate_ui.R", local = TRUE)
 source("R/ui/multivariate_ui.R", local = TRUE)
+source("R/ui/kpi_transformation_ui.R", local = TRUE) # KPI Transformation tab
 
 ui <- navbarPage(
-  id = "main-tabs",
-  title = NULL,
+  id    = "main-tabs",
+  title = "EDA Analytics Dashboard",  # Añadir un título explícito
   theme = shinythemes::shinytheme("flatly"),
-  tags$head(
-    tags$link(rel = "stylesheet", type = "text/css", href = "styles.css")
+  header = tags$head(
+    tags$link(rel = "stylesheet", type = "text/css", href = "styles.css"),
+    tags$script(src = "custom.js") # Include custom JavaScript
   ),
-
-  # Pestaña Information
+  
+  # Information tab (usar tabPanel en lugar de simplemente incluir contenido)
   tabPanel(
-    "Information",
+    title = "Information",
     ui_information()
   ),
-
-  # Pestaña Univariate
+  
+  # Univariate tab
   tabPanel(
-    "Univariate",
+    title = "Univariate",
     ui_univariate()
   ),
-
-  # Pestaña Multivariate
+  
+  # Multivariate tab
   tabPanel(
-    "Multivariate",
+    title = "Multivariate",
     ui_multivariate()
+  ),
+  
+  # KPI Transformation tab
+  tabPanel(
+    title = "KPI",
+    ui_kpi_transformation()
   )
 )

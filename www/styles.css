@@ -1,199 +1,259 @@
 /* www/styles.css */
 /* =============================================================================
-   Estilos Personalizados para la Aplicación Shiny EDA
-
-   Este archivo CSS centraliza y organiza todos los estilos de la aplicación Shiny
-   EDA. Se divide en secciones temáticas para facilitar la mantenibilidad,
-   reducir la redundancia y mejorar la claridad del código CSS.
-
-   Cada sección está comentada para explicar su propósito y los estilos que contiene.
+   Custom Styles for the Shiny EDA Application
+   All now in English comments for consistency.
    ============================================================================ */
 
-/* =============================================================================
-   Sección: Estilos Generales y Reset
-   Estilos base para el body, tipografía y elementos comunes.
-   Incluye un ligero "reset" para asegurar una base consistente entre navegadores.
-   ============================================================================ */
+/* ------------------------------------
+   SECTION: Global resets & basic layout
+--------------------------------------- */
 body {
-  font-family: 'Roboto', sans-serif; /* Fuente principal para todo el cuerpo */
-  background-color: #f8f9fa;       /* Color de fondo general de la aplicación */
-  margin: 0;                       /* Elimina márgenes por defecto del body */
-  padding: 0;                      /* Elimina padding por defecto del body */
+  font-family: 'Roboto', sans-serif;
+  background-color: #f8f9fa;
+  margin: 0;
+  padding: 0;
 }
 
-/* =============================================================================
-   Sección: Estilos para Contenedores y Secciones (Cards)
-   Define estilos para los contenedores principales que agrupan el contenido
-   en secciones visualmente distintas (tarjetas o "cards").
-   ============================================================================ */
+/* ------------------------------------
+   SECTION: Card containers
+--------------------------------------- */
 .section-card {
-  background: #ffffff;             /* Fondo blanco para las tarjetas de sección */
-  border-radius: 8px;             /* Bordes ligeramente redondeados */
-  box-shadow: 0 2px 4px rgba(0,0,0,0.08); /* Sombra suave para dar elevación */
-  margin-bottom: 20px;            /* Espacio inferior entre tarjetas */
-  padding: 25px;                  /* Relleno interno para el contenido de las tarjetas */
-  border: 1px solid #e0e0e0;       /* Borde sutil para delimitar visualmente */
-  transition: box-shadow 0.3s ease; /* Transición suave para la sombra al pasar el ratón */
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+  margin-bottom: 20px;
+  padding: 25px;
+  border: 1px solid #e0e0e0;
+  transition: box-shadow 0.3s ease;
 }
-
 .section-card:hover {
-  box-shadow: 0 4px 8px rgba(0,0,0,0.12); /* Sombra más pronunciada al pasar el ratón */
+  box-shadow: 0 4px 8px rgba(0,0,0,0.12);
 }
-
 .section-title {
-  color: #2c3e50;                 /* Color del texto para los títulos de sección */
-  font-size: 1.4rem;               /* Tamaño de fuente para los títulos de sección (relativo al tamaño base) */
-  font-weight: 600;               /* Grosor de fuente seminegrita para los títulos */
-  margin-bottom: 20px;            /* Espacio inferior debajo de los títulos */
-  padding-bottom: 10px;           /* Relleno inferior para separar el título de la línea inferior */
-  border-bottom: 2px solid #3498db; /* Línea inferior decorativa para los títulos de sección */
+  color: #2c3e50;
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #3498db;
 }
 
+/* Chart container */
 .chart-box {
-  background: #ffffff;             /* Fondo blanco para los contenedores de gráficos */
-  border-radius: 8px;             /* Bordes redondeados para los gráficos */
-  padding: 15px;                  /* Relleno interno para los gráficos */
-  margin-bottom: 20px;            /* Espacio inferior debajo de los contenedores de gráficos */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra suave para los contenedores de gráficos */
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
-
 .chart-title {
-  color: #2c3e50;                 /* Color del texto para los títulos de gráficos */
-  font-size: 1.1rem;               /* Tamaño de fuente para los títulos de gráficos */
-  font-weight: 500;               /* Grosor de fuente medio para los títulos de gráficos */
-  margin-bottom: 12px;            /* Espacio inferior debajo de los títulos de gráficos */
+  color: #2c3e50;
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin-bottom: 12px;
 }
 
-/* =============================================================================
-   Sección: Estilos para Controles de Formulario y Selectores
-   Estilos para inputs, selectores y elementos relacionados con formularios.
-   ============================================================================ */
+/* ------------------------------------
+   SECTION: Form controls, selects
+--------------------------------------- */
 .variable-select {
-  margin-bottom: 15px;            /* Espacio inferior para los selectores de variables */
+  margin-bottom: 15px;
 }
-
 .variable-select .selectize-input {
-  border-radius: 6px;             /* Bordes redondeados para los inputs de selectize (selectores) */
-  border: 1px solid #dce4ec;       /* Borde estándar para los inputs de selectize */
+  border-radius: 6px;
+  border: 1px solid #dce4ec;
 }
-
 .variable-select .selectize-input.focus {
-  border-color: #3498db;           /* Color del borde al enfocar (seleccionar) el input de selectize */
-  box-shadow: 0 0 0 2px rgba(52,152,219,0.2); /* Sombra suave al enfocar para destacar el input */
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52,152,219,0.2);
 }
-
 .pretty-radio {
-  margin: 10px 0;                 /* Espacio vertical para los radio buttons de prettyRadioButtons */
+  margin: 10px 0;
 }
-
 .date-range-picker {
-  margin-top: 15px;               /* Margen superior para el selector de rango de fechas */
-  padding: 15px;                  /* Relleno interno para el selector de rango de fechas */
-  background: #f8f9fa;           /* Fondo ligero para el selector de rango de fechas */
-  border-radius: 6px;             /* Bordes redondeados para el selector de rango de fechas */
+  margin-top: 15px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 6px;
 }
 
-
-/* =============================================================================
-   Sección: Estilos Panel Information - Específicos
-   Estilos particulares para elementos del panel de Información.
-   ============================================================================ */
+/* ------------------------------------
+   SECTION: Upload zone
+--------------------------------------- */
 .upload-zone {
-  border: 2px dashed #bdc3c7;       /* Borde punteado para la zona de carga de archivos */
-  border-radius: 8px;             /* Bordes redondeados para la zona de carga */
-  padding: 20px;                  /* Relleno interno para la zona de carga */
-  text-align: center;             /* Centrar el texto dentro de la zona de carga */
-  background: #f8f9fa;           /* Fondo ligero para la zona de carga */
-  transition: border-color 0.3s ease, background-color 0.3s ease; /* Transición suave para efectos hover */
+  border: 2px dashed #bdc3c7;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  background: #f8f9fa;
+  transition: border-color 0.3s ease, background-color 0.3s ease;
 }
-
 .upload-zone:hover {
-  border-color: #3498db;           /* Color del borde al pasar el ratón sobre la zona de carga */
-  background: #f1f6f9;           /* Fondo ligeramente más oscuro al pasar el ratón */
+  border-color: #3498db;
+  background: #f1f6f9;
 }
 
-
+/* ------------------------------------
+   SECTION: Info badges
+--------------------------------------- */
 .info-badge {
-  display: inline-block;          /* Permite que el badge se comporte como inline pero con propiedades de bloque */
-  padding: 4px 8px;               /* Relleno interno para el badge de información */
-  background: #e1f0fa;           /* Fondo muy ligero para el badge */
-  color: #3498db;                 /* Color del texto para el badge (azul primario) */
-  border-radius: 4px;             /* Bordes redondeados para el badge */
-  font-size: 0.9rem;               /* Tamaño de fuente ligeramente menor para el texto del badge */
-  margin-left: 8px;              /* Espacio a la izquierda del badge para separarlo de otros elementos */
+  display: inline-block;
+  padding: 4px 8px;
+  background: #e1f0fa;
+  color: #3498db;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  margin-left: 8px;
 }
 
+/* Summary table */
 .summary-table {
-  width: 100%;                    /* Ancho completo para la tabla de resumen */
-  margin-top: 15px;               /* Margen superior para separar la tabla del contenido anterior */
+  width: 100%;
+  margin-top: 15px;
 }
-
 .summary-table thead th {
-  background: #f8f9fa;           /* Fondo ligero para la cabecera de la tabla */
-  padding: 12px;                  /* Relleno interno para las celdas de la cabecera */
-  font-weight: 600;               /* Grosor de fuente seminegrita para el texto de la cabecera */
+  background: #f8f9fa;
+  padding: 12px;
+  font-weight: 600;
 }
-
 .summary-table tbody td {
-  padding: 10px;                  /* Relleno interno para las celdas del cuerpo de la tabla */
-  border-top: 1px solid #ecf0f1;   /* Línea superior sutil para separar filas en el cuerpo de la tabla */
+  padding: 10px;
+  border-top: 1px solid #ecf0f1;
 }
 
+/* Dimension info */
 .dimension-info {
-  display: flex;                 /* Utiliza flexbox para alinear los elementos en fila */
-  align-items: center;            /* Alinea verticalmente los elementos al centro */
-  gap: 10px;                     /* Espacio entre los elementos (label y valor) */
-  margin: 10px 0;                /* Margen vertical para separar bloques de información de dimensión */
-  padding: 10px;                  /* Relleno interno para los bloques de información de dimensión */
-  background: #f8f9fa;           /* Fondo ligero para los bloques de información de dimensión */
-  border-radius: 6px;             /* Bordes redondeados para los bloques de información de dimensión */
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 6px;
 }
-
 .dimension-label {
-  font-weight: 600;               /* Grosor de fuente seminegrita para las etiquetas de dimensión */
-  color: #2c3e50;                 /* Color del texto para las etiquetas de dimensión */
-  min-width: 180px;              /* Ancho mínimo para las etiquetas de dimensión para asegurar alineación */
+  font-weight: 600;
+  color: #2c3e50;
+  min-width: 180px;
 }
-
 .dimension-value {
-  color: #34495e;                 /* Color del texto para los valores de dimensión (gris más oscuro) */
+  color: #34495e;
 }
 
-
-/* =============================================================================
-   Sección: Estilos Panel Multivariate y Univariate - Controles de Transformación
-   Estilos comunes para los controles de transformación de variables en
-   los paneles Multivariado y Univariado.
-   ============================================================================ */
+/* Transformation panel */
 .transform-params {
-  display: flex;                    /* Utiliza flexbox para alinear los parámetros en fila */
-  flex-wrap: nowrap !important;     /* Evita que los parámetros se envuelvan a la siguiente línea (importante para el layout) */
-  gap: 10px;                       /* Espacio entre los elementos de parámetros */
-  margin: 0 !important;             /* Elimina márgenes que puedan afectar el layout (importante para el layout) */
+  display: flex;
+  flex-wrap: nowrap !important;
+  gap: 10px;
+  margin: 0 !important;
 }
-
 .transform-param-item {
-  flex: 1;                          /* Permite que cada parámetro se expanda para ocupar el espacio disponible */
-  min-width: 0;                     /* Asegura que los elementos no se hagan más pequeños que su contenido */
-  padding: 0 5px;                 /* Relleno horizontal ligero para separar visualmente los parámetros */
+  flex: 1;
+  min-width: 0;
+  padding: 0 5px;
 }
 
-
-/* =============================================================================
-   Sección: Estilos para Botones Personalizados
-   Estilos para botones de descarga y otros botones personalizados.
-   (Reutilizado en varios paneles)
-   ============================================================================ */
+/* Custom buttons */
 .custom-download-btn {
-  background-color: #2ecc71;       /* Color de fondo verde para los botones de descarga */
-  color: white;                     /* Color del texto blanco para los botones de descarga */
-  border: none;                     /* Elimina el borde por defecto de los botones */
-  padding: 8px 16px;               /* Relleno interno para hacer el botón visible y cómodo al clic */
-  border-radius: 4px;             /* Bordes ligeramente redondeados para los botones */
-  transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Transición suave para efectos hover */
+  background-color: #2ecc71;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+.custom-download-btn:hover {
+  background-color: #27ae60;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Styles for the download buttons */
+.custom-download-btn {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .custom-download-btn:hover {
-  background-color: #27ae60;       /* Color de fondo verde más oscuro al pasar el ratón */
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Sombra suave al pasar el ratón para dar feedback visual */
+  background-color: #2980b9;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  color: white;
+}
+
+.custom-download-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Style for the univariate download button */
+#download_univariate {
+  margin-top: 10px;
+}
+
+/* Specific styles for download button containers */
+.download-button-container {
+  margin-top: 15px;
+  padding: 10px;
+  text-align: right;
+  background-color: rgba(240, 240, 240, 0.3);
+  border-radius: 4px;
+  border-top: 1px solid #e0e0e0;
+}
+
+/* Informational badge that appears when hovering over download buttons */
+/* .download-info-badge {
+  display: inline-block;
+  background-color: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 6px 10px;
+  margin-right: 10px;
+  font-size: 0.85rem;
+  color: #555;
+  vertical-align: middle;
+} */
+
+/* Loading animation for buttons during download */
+.btn-downloading {
+  position: relative;
+  pointer-events: none;
+  background-color: #2980b9 !important;
+}
+
+.btn-downloading::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: linear-gradient(
+    -45deg,
+    rgba(255, 255, 255, 0.2) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.2) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 25px 25px;
+  border-radius: 4px;
+  animation: downloading 1s linear infinite;
+  z-index: 1;
+}
+
+@keyframes downloading {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 25px 0;
+  }
 }

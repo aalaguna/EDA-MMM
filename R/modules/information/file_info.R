@@ -1,15 +1,22 @@
-# "# R/modules/common/file_info.R"
+# File_Info.R
+
 # =============================================================================
-# Módulo: file_info
-# Muestra información básica del archivo cargado.
+# Displays basic information about the uploaded file.
 # =============================================================================
 
 file_info_module_server <- function(input, output, session, rv) {
+  # Server module to display basic file information
+  #
+  # Args:
+  #   input: Shiny input object
+  #   output: Shiny output object
+  #   session: Shiny session object
+  #   rv: Shared reactive values
+  
   output$file_details <- renderPrint({
     req(rv$data)
     df <- rv$data
-    cat("Número de filas:", nrow(df), "\n")
-    cat("Número de columnas:", ncol(df), "\n")
-    # cat("Columnas:", paste(names(df), collapse = ", "), "\n")
+    cat("Number of Rows:", nrow(df), "\n")
+    cat("Number of Columns:", ncol(df), "\n")
   })
 }
