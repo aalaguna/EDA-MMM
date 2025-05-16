@@ -43,7 +43,7 @@ source("R/modules/univariate/Univariate_Server.R", local = TRUE)
 source("R/modules/multivariate/Multivariate_Server.R", local = TRUE)
 
 # --- Load KPI Transformation modules ---
-source("R/modules/kpi_transformation/KPI_Transformation_Server.R", local = TRUE)
+source("R/modules/kpi/KPI_Transformation_Server.R", local = TRUE)
 
 server <- function(input, output, session) {
   # --- Global reactive values ---
