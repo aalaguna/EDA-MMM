@@ -4,7 +4,122 @@
 # # Renders the chart of the transformed variable over time.
 # # =============================================================================
 # 
-
+# render_transformation_chart <- function(df, variable_univ, transformation_univ,
+#                                         lag_univ, decay_univ,
+#                                         alpha_univ, beta_univ, maxval_univ,
+#                                         geography_univ) {
+# 
+# 
+#   req(df, variable_univ, transformation_univ)
+#   validate(
+#     need(variable_univ != "N/A", "Please select a valid variable for transformation.")
+#   )
+# 
+#   var_name <- variable_univ
+#   data_vec <- df[[var_name]]
+#   validate(
+#     need(length(data_vec) > 0, "No data available for transformation.")
+#   )
+# 
+#   data_trans <- as.numeric(data_vec)
+#   if (lag_univ > 0) {
+#     if (lag_univ >= length(data_trans)) {
+#       data_trans <- rep(NA, length(data_trans))
+#     } else {
+#       data_trans <- c(rep(NA, lag_univ), head(data_trans, -lag_univ))
+#     }
+#   }
+#   data_trans <- data_trans * decay_univ
+# 
+#   transformed_data <- tryCatch({
+#     switch(transformation_univ,
+# 
+#            "Linear" = data_trans,
+# 
+#            "S Origin" = {
+#              if (max(data_trans, na.rm = TRUE) != 0) {
+#                beta_scaled <- beta_univ / 1e9
+#                scaled_x <- 100 * data_trans / (max(data_trans, na.rm = TRUE) * maxval_univ)
+#                result <- (beta_scaled)^(alpha_univ^scaled_x) - beta_scaled
+#                result
+#              } else {
+#                data_trans
+#              }
+#            },
+# 
+#            "S Shaped" = {
+#              if (max(data_trans, na.rm = TRUE) != 0) {
+#                beta_scaled <- beta_univ / 1e10
+#                scaled_x <- 100 * data_trans / (max(data_trans, na.rm = TRUE) * maxval_univ)
+#                result <- (beta_scaled)^(alpha_univ^scaled_x)
+#                result
+#              } else {
+#                data_trans
+#              }
+#            },
+# 
+#            "Index Exp" = 1 - exp(-(alpha_univ / 10) * data_trans),
+#            "Log"      = log1p(data_trans),
+#            "Exp"      = exp(data_trans),
+#            "Power"    = data_trans^alpha_univ,
+# 
+#            "Moving Avg" = {
+#              if (length(data_trans) < 3) rep(NA, length(data_trans))
+#              else zoo::rollmean(data_trans, k = 3, fill = NA, align = "right")
+#            },
+# 
+#            data_trans
+#     )
+#   }, error = function(e) {
+#     notifyUser(paste("Transformation error:", e$message), "error")
+#     data_trans
+#   })
+# 
+# 
+#   date_col <- if ("Period" %in% names(df)) "Period" else "periodo"
+#   req(date_col)
+# 
+#   df_trans <- df %>%
+#     mutate(
+#       date = as.Date(.data[[date_col]]),
+#       Transformed = transformed_data
+#     ) %>%
+#     arrange(date)
+# 
+#   # Use plotly directly with real date and quarterly labels
+#   p <- plot_ly(
+#     df_trans,
+#     x = ~date,
+#     y = ~Transformed,
+#     type = 'scatter',
+#     mode = 'lines+markers',
+#     line = list(color = 'red'),
+#     hovertemplate = paste(
+#       "Date: %{x|%Y-%m-%d}<br>",
+#       "Transformed: %{y:,.2f}<extra></extra>"
+#     )
+#   ) %>%
+#     layout(
+#       title = paste("Transformed Variable (Geography:", geography_univ, ")"),
+#       xaxis = list(
+#         title = list(text = "Time", standoff = 25),
+#         type = "date",
+#         tickformat = "%Y-%m",
+#         dtick = "M3",
+#         tickangle = -45,
+#         automargin = TRUE
+#       ),
+#       yaxis = list(
+#         title = list(text = "Transformed Value", standoff = 20),
+#         automargin = TRUE
+#       ),
+#       margin = list(l = 70, r = 40, t = 60, b = 80),
+#       showlegend = FALSE
+#     )
+# 
+#   return(p)
+# 
+# }
 
 
 render_transformation_chart <- function(df, kpi_univ, variable_univ, transformation_univ,
@@ -37,20 +152,9 @@ render_transformation_chart <- function(df, kpi_univ, variable_univ, transformat
       data_trans <- c(rep(NA, lag_univ), head(data_trans, -lag_univ))
     }
   }
-
-  # # Apply Decay
-  # data_trans <- data_trans * decay_univ
-
-
-  # Apply Decay (carry-over effect)
-  if (!is.na(decay_univ) && decay_univ < 1 && decay_univ > 0) {
-    for (i in 2:length(data_trans)) {
-      if (!is.na(data_trans[i - 1])) {
-        data_trans[i] <- data_trans[i] + decay_univ * data_trans[i - 1]
-      }
-    }
-  }
   
+  # Apply Decay
+  data_trans <- data_trans * decay_univ
   
   # Apply Transformation
   transformed_data <- tryCatch({
@@ -58,25 +162,19 @@ render_transformation_chart <- function(df, kpi_univ, variable_univ, transformat
            "Linear" = data_trans,
            "S Origin" = {
              if (max(data_trans, na.rm = TRUE) != 0) {
-               beta_scaled <- beta_univ / (10^9)
+               beta_scaled <- beta_univ / 1e9
                scaled_x <- 100 * data_trans / (max(data_trans, na.rm = TRUE) * maxval_univ)
-               ((beta_scaled)^((alpha_univ^scaled_x))) - beta_scaled
+               (beta_scaled)^(alpha_univ^scaled_x) - beta_scaled
              } else data_trans
            },
            "S Shaped" = {
              if (max(data_trans, na.rm = TRUE) != 0) {
-               beta_scaled <- beta_univ / (10^10)
+               beta_scaled <- beta_univ / 1e10
                scaled_x <- 100 * data_trans / (max(data_trans, na.rm = TRUE) * maxval_univ)
                (beta_scaled)^(alpha_univ^scaled_x)
              } else data_trans
            },
-           "Index Exp" = {
-             if (max(data_trans, na.rm = TRUE) != 0) {
-               1 - exp((-alpha_univ * (100 * data_trans / (max(data_trans, na.rm = TRUE) * maxval_univ))) / 10)
-             } else {
-               data_trans
-             }
-           },
+           "Index Exp" = 1 - exp(-(alpha_univ / 10) * data_trans),
            "Log" = log1p(data_trans),
            "Exp" = exp(data_trans),
            "Power" = data_trans^alpha_univ,
@@ -112,20 +210,84 @@ render_transformation_chart <- function(df, kpi_univ, variable_univ, transformat
 
   
   # --- Plot ---
+  # plot_ly(df_plot, x = ~date) %>%
+  #   add_lines(
+  #     y = ~KPI,
+  #     name = "KPI",
+  #     line = list(color = "blue"),
+  #     yaxis = "y"
+  #   ) %>%
+  #   add_lines(
+  #     y = ~Variable_Transformed,
+  #     name = "Variable (Transformed)",
+  #     line = list(color = "red"),
+  #     yaxis = "y2"
+  #   ) %>%
+  #   layout(
+  #     title = paste("Transformed Variable vs KPI (Geography:", geography_univ, ")"),
+  #     xaxis = list(
+  #       title = list(text = "Time", standoff = 25),
+  #       type = "date",
+  #       tickformat = "%Y-%m",
+  #       tickangle = -45
+  #     ),
+  #     yaxis = list(
+  #       title = "KPI",
+  #       side = "left"
+  #     ),
+  #     yaxis2 = list(
+  #       title = "Transformed Variable",
+  #       overlaying = "y",
+  #       side = "right"
+  #     ),
+  #     legend = list(
+  #       orientation = "v",
+  #       xanchor = "left",
+  #       x = 1.02,
+  #       y = 1
+  #     ),
+  #     hovermode = "x unified"
+  #   )
+  # --- Plot ---
+  # plot_ly(df_plot, x = ~label) %>%
+  #   add_lines(
+  #     y = ~KPI,
+  #     name = "KPI",
+  #     line = list(color = "blue"),
+  #     yaxis = "y"
+  #   ) %>%
+  #   add_lines(
+  #     y = ~Variable_Transformed,
+  #     name = "Variable (Transformed)",
+  #     line = list(color = "red"),
+  #     yaxis = "y2"
+  #   ) %>%
+  #   layout(
+  #     title = paste("Transformed Variable vs KPI (Geography:", geography_univ, ")"),
+  #     xaxis = list(
+  #       title = list(text = "Time", standoff = 25),
+  #       type = "category",
+  #       tickangle = -45
+  #     ),
+  #     yaxis = list(
+  #       title = "KPI",
+  #       side = "left"
+  #     ),
+  #     yaxis2 = list(
+  #       title = "Transformed Variable",
+  #       overlaying = "y",
+  #       side = "right"
+  #     ),
+  #     legend = list(
+  #       orientation = "v",
+  #       xanchor = "left",
+  #       x = 1.02,
+  #       y = 1
+  #     ),
+  #     hovermode = "x unified"
+  #   )
+  # --- Plot ---
   plot_ly(df_plot, x = ~date) %>%
-    add_trace(
-      y = ~Variable_Transformed,
-      name = "Variable (Trans)",
-      type = "scatter",
-      mode = "lines+markers",
-      line = list(color = "red", width = 2),
-      marker = list(color = "red", size = 6),
-      yaxis = "y",
-      hovertemplate = paste(
-        "Date: %{x|%Y-%m-%d}<br>",
-        "Variable: %{y:.2f}<extra></extra>"
-      )
-    ) %>%
     add_trace(
       y = ~KPI,
       name = "KPI",
@@ -133,10 +295,23 @@ render_transformation_chart <- function(df, kpi_univ, variable_univ, transformat
       mode = "lines+markers",
       line = list(color = "blue", width = 2),
       marker = list(color = "blue", size = 6),
-      yaxis = "y2",
+      yaxis = "y",
       hovertemplate = paste(
         "Date: %{x|%Y-%m-%d}<br>",
         "KPI: %{y:.2f}<extra></extra>"
+      )
+    ) %>%
+    add_trace(
+      y = ~Variable_Transformed,
+      name = "Variable (Transformed)",
+      type = "scatter",
+      mode = "lines+markers",
+      line = list(color = "red", width = 2),
+      marker = list(color = "red", size = 6),
+      yaxis = "y2",
+      hovertemplate = paste(
+        "Date: %{x|%Y-%m-%d}<br>",
+        "Variable: %{y:.2f}<extra></extra>"
       )
     ) %>%
     layout(
@@ -150,12 +325,12 @@ render_transformation_chart <- function(df, kpi_univ, variable_univ, transformat
         automargin = TRUE
       ),
       yaxis = list(
-        title = list(text = "Transformed Variable", standoff = 20),
+        title = list(text = "KPI", standoff = 20),
         side = "left",
         automargin = TRUE
       ),
       yaxis2 = list(
-        title = list(text = "KPI", standoff = 20),
+        title = list(text = "Transformed Variable", standoff = 20),
         overlaying = "y",
         side = "right",
         automargin = TRUE
@@ -169,6 +344,7 @@ render_transformation_chart <- function(df, kpi_univ, variable_univ, transformat
       margin = list(l = 70, r = 120, t = 60, b = 80),
       hovermode = "x unified"
     )
+  
   
 }
 

@@ -1,8 +1,9 @@
-# S_Curve_EDA_Univariate.R
+# =============================================================================
+# S-Curve EDA (Exploratory Data Analysis) for Univariate Analysis
+# =============================================================================
 
-
-source("R/modules/common/s_curve_charts.R")
-source("R/modules/common/s_curve_helpers.R")
+source("R/modules/common/s_curve_charts.R")  # Ensure this file exists
+source("R/modules/common/s_curve_helpers.R") # Ensure this file exists
 library(dplyr)
 library(shiny)
 library(plotly)
@@ -12,26 +13,94 @@ library(shinycssloaders)
 # render_s_curve_plots: Renders the Univariate S-Curve and Flighting charts
 # -------------------------------------------------------------------------
 render_s_curve_plots <- function(df, input) {
+  # Validate inputs
   req(df, input$variable_univ)
   validate(
     need(input$variable_univ != "N/A", "Please select a valid variable for the S-Curve."),
-    need(input$transformation_univ %in% c("S Origin", "S Shaped"), "This chart is only displayed for 'S Origin' or 'S Shaped'.")
+    need(input$transformation_univ %in% c("S Origin", "S Shaped"), 
+         "This chart is only displayed for 'S Origin' or 'S Shaped' transformations.")
   )
- 
-  # Use data already filtered by global filter
-  df_scurve <- df %>%
-    mutate(Period = if ("Period" %in% names(.)) as.Date(Period) else as.Date(periodo)) %>%
-    select(Period, value = !!sym(input$variable_univ))
- 
-  # Apply lag and decay to data
-  if (input$lag_univ > 0) {
-    if (input$lag_univ >= nrow(df_scurve)) df_scurve$value <- rep(NA, nrow(df_scurve))
-    else df_scurve$value <- c(rep(NA, input$lag_univ), head(df_scurve$value, -input$lag_univ))
+  
+  # Check if variable exists in data
+  if (!input$variable_univ %in% names(df)) {
+    return(plot_ly() %>% 
+             layout(title = paste("Variable", input$variable_univ, "not found in data."),
+                    xaxis = list(showticklabels = FALSE),
+                    yaxis = list(showticklabels = FALSE)))
   }
  
-  df_scurve$value <- as.numeric(df_scurve$value) * input$decay_univ
+  # Use data already filtered by global filter, with error handling
+  df_scurve <- tryCatch({
+    # Identify date column
+    date_col <- if ("Period" %in% names(df)) {
+      "Period" 
+    } else if ("periodo" %in% names(df)) {
+      "periodo"
+    } else {
+      NULL
+    }
+    
+    if (is.null(date_col)) {
+      stop("Date column not found in data.")
+    }
+    
+    # Prepare data for S-curve analysis
+    df %>%
+      mutate(Period = as.Date(!!sym(date_col))) %>%
+      select(Period, value = !!sym(input$variable_univ)) %>%
+      filter(!is.na(Period), !is.na(value))  # Remove rows with NA
+  }, error = function(e) {
+    warning(paste("Error preparing data for S-curve analysis:", e$message))
+    return(NULL)
+  })
+  
+  # Check if we have valid data after preparation
+  if (is.null(df_scurve) || nrow(df_scurve) == 0) {
+    return(plot_ly() %>% 
+             layout(title = "No valid data available for S-Curve analysis.",
+                    xaxis = list(showticklabels = FALSE),
+                    yaxis = list(showticklabels = FALSE)))
+  }
  
-  if (nrow(df_scurve) == 0) return(plot_ly() %>% layout(title = "No data available for S-Curve."))
+  # Apply lag and decay to data with error handling
+  lag_value <- as.integer(input$lag_univ)
+  decay_value <- as.numeric(input$decay_univ)
+  
+  # Validate lag value
+  if (is.na(lag_value) || lag_value < 0) {
+    lag_value <- 0
+    warning("Invalid lag value. Using 0 instead.")
+  }
+  
+  # Validate decay value
+  if (is.na(decay_value) || decay_value <= 0) {
+    decay_value <- 1
+    warning("Invalid decay value. Using 1 instead.")
+  }
+  
+  # Apply lag
+  if (lag_value > 0) {
+    if (lag_value >= nrow(df_scurve)) {
+      df_scurve$value <- rep(NA, nrow(df_scurve))
+      warning("Lag value is too large for the data size. All values will be NA.")
+    } else {
+      df_scurve$value <- c(rep(NA, lag_value), head(df_scurve$value, -lag_value))
+    }
+  }
+  
+  # Apply decay
+  df_scurve$value <- as.numeric(df_scurve$value) * decay_value
+  
+  # Remove rows with NA values after transformation
+  df_scurve <- df_scurve[!is.na(df_scurve$value), ]
+  
+  # Check if we still have data after transformations
+  if (nrow(df_scurve) == 0) {
+    return(plot_ly() %>% 
+             layout(title = "No valid data available after applying lag and decay.",
+                    xaxis = list(showticklabels = FALSE),
+                    yaxis = list(showticklabels = FALSE)))
+  }
  
   # Data for average calculation (green line)
   avg_data <- NULL
@@ -43,50 +112,70 @@ render_s_curve_plots <- function(df, input) {
       !is.na(input$avg_date_range_univ[1]) && 
       !is.na(input$avg_date_range_univ[2])) {
       
-    # Filter data for average calculation, excluding zeros
-    avg_data <- df_scurve %>%
-      filter(Period >= input$avg_date_range_univ[1] & 
-             Period <= input$avg_date_range_univ[2] &
-             value > 0)  # Exclude zeros
-    
-    # Only update avg_period if there's data in the range
-    if (nrow(avg_data) > 0) {
-      avg_period <- nrow(avg_data)
-    } else {
-      # If no data in range, clear avg_data to use the average of the whole series
+    # Filter data for average calculation, excluding zeros and negative values
+    tryCatch({
+      avg_data <- df_scurve %>%
+        filter(Period >= input$avg_date_range_univ[1] & 
+               Period <= input$avg_date_range_univ[2] &
+               value > 0)  # Exclude zeros and negative values
+      
+      # Only update avg_period if there's data in the range
+      if (nrow(avg_data) > 0) {
+        avg_period <- nrow(avg_data)
+      } else {
+        # If no data in range, clear avg_data to use the average of the whole series
+        avg_data <- NULL
+        warning("No positive values in the selected date range for average calculation.")
+      }
+    }, error = function(e) {
+      warning(paste("Error filtering data for average calculation:", e$message))
       avg_data <- NULL
-    }
+    })
   }
   
   # Verify we have data for average calculation
   if (is.null(avg_data)) {
-    # Use all non-zero values if no specific data
+    # Use all positive values if no specific data
     avg_period <- nrow(df_scurve %>% filter(value > 0))
   }
  
-  # Create charts with appropriate variable values
-  var_name    <- input$variable_univ
-  alpha       <- input$alpha_univ
-  beta        <- input$beta_univ
-  max_val_pct <- input$maxval_univ
-  decay       <- input$decay_univ
-  lag         <- input$lag_univ
+  # Get parameter values for S-curve with validation
+  var_name <- input$variable_univ
+  
+  alpha_value <- as.numeric(input$alpha_univ)
+  if (is.na(alpha_value) || alpha_value <= 0 || alpha_value >= 1) {
+    alpha_value <- 0.85  # Default value
+    warning("Invalid alpha value. Using default value of 0.85.")
+  }
+  
+  beta_value <- as.numeric(input$beta_univ)
+  if (is.na(beta_value) || beta_value <= 0) {
+    beta_value <- 1  # Default value
+    warning("Invalid beta value. Using default value of 1.")
+  }
+  
+  maxval_value <- as.numeric(input$maxval_univ)
+  if (is.na(maxval_value) || maxval_value <= 0) {
+    maxval_value <- 100  # Default value
+    warning("Invalid maxval value. Using default value of 100.")
+  }
  
   # First generate Flighting Chart to get its configurations
   flighting_plot <- tryCatch({
     create_flighting_chart(
       data_chart = df_scurve,
-      alpha = alpha,
-      beta = beta,
-      max_val_pct = max_val_pct,
-      decay = decay,
-      lag = lag,
+      alpha = alpha_value,
+      beta = beta_value,
+      max_val_pct = maxval_value,
+      decay = decay_value,
+      lag = lag_value,
       var_name = var_name,
       calculated_key_points = NULL,  # No key points yet
       avg_period = avg_period,
       avg_data = avg_data  # Pass filtered data for average calculation
     )
   }, error = function(e) {
+    warning(paste("Error creating flighting chart:", e$message))
     return(plot_ly() %>% layout(title = paste("Error in Flighting Chart:", e$message)))
   })
   
@@ -94,17 +183,18 @@ render_s_curve_plots <- function(df, input) {
   s_curve_plot <- tryCatch({
     create_s_curve_chart(
       data_chart = df_scurve,
-      alpha = alpha,
-      beta = beta,
-      max_val_pct = max_val_pct,
-      decay = decay,
-      lag = lag,
+      alpha = alpha_value,
+      beta = beta_value,
+      max_val_pct = maxval_value,
+      decay = decay_value,
+      lag = lag_value,
       var_name = var_name,
       avg_period = avg_period,
       avg_data = avg_data,  # Pass filtered data for average calculation
       flighting_chart = flighting_plot  # Pass flighting chart to coordinate axes
     )
   }, error = function(e) {
+    warning(paste("Error creating S-curve chart:", e$message))
     return(plot_ly() %>% layout(title = paste("Error in S-Curve Chart:", e$message)))
   })
   
@@ -115,32 +205,57 @@ render_s_curve_plots <- function(df, input) {
   flighting_plot <- tryCatch({
     create_flighting_chart(
       data_chart = df_scurve,
-      alpha = alpha,
-      beta = beta,
-      max_val_pct = max_val_pct,
-      decay = decay,
-      lag = lag,
+      alpha = alpha_value,
+      beta = beta_value,
+      max_val_pct = maxval_value,
+      decay = decay_value,
+      lag = lag_value,
       var_name = var_name,
       calculated_key_points = key_points,  # Use key points from S-Curve
       avg_period = avg_period,
       avg_data = avg_data  # Pass filtered data for average calculation
     )
   }, error = function(e) {
+    warning(paste("Error recreating flighting chart with key points:", e$message))
     return(plot_ly() %>% layout(title = paste("Error in Flighting Chart:", e$message)))
   })
  
   # Create combined subplot
-  subplot(flighting_plot, s_curve_plot, nrows = 1, widths = c(0.7, 0.3), titleX = TRUE, titleY = TRUE, margin = 0.05) %>%
-    layout(
-      title = "",
-      margin = list(l = 60, r = 60, b = 60, t = 10, pad = 10),
-      autosize = TRUE,
-      plot_bgcolor = '#FFFFFF',
-      paper_bgcolor = '#FFFFFF',
-      font = list(family = "Arial, sans-serif"),
-      hoverlabel = list(bgcolor = "#FFF", font = list(size = 12, family = "Arial, sans-serif"), bordercolor = "#DDD")
-    ) %>%
-    config(displayModeBar = TRUE, displaylogo = FALSE, modeBarButtonsToRemove = list('sendDataToCloud', 'hoverCompareCartesian', 'hoverClosestCartesian', 'select2d', 'lasso2d'), responsive = TRUE)
+  tryCatch({
+    subplot(flighting_plot, s_curve_plot, nrows = 1, widths = c(0.7, 0.3), titleX = TRUE, titleY = TRUE, margin = 0.05) %>%
+      layout(
+        title = list(
+          text = paste("S-Curve Analysis:", var_name),
+          font = list(size = 16, family = "Arial", color = "#333")
+        ),
+        margin = list(l = 60, r = 60, b = 60, t = 50, pad = 10),
+        autosize = TRUE,
+        plot_bgcolor = '#FFFFFF',
+        paper_bgcolor = '#FFFFFF',
+        font = list(family = "Arial, sans-serif"),
+        hoverlabel = list(bgcolor = "#FFF", font = list(size = 12, family = "Arial, sans-serif"), bordercolor = "#DDD"),
+        annotations = list(
+          list(
+            x = 0.5,
+            y = 1.05,
+            xref = "paper",
+            yref = "paper",
+            text = paste0("Alpha: ", round(alpha_value, 3), ", Beta: ", round(beta_value, 3), 
+                          ", MaxVal: ", round(maxval_value, 1), "%, Decay: ", round(decay_value, 2), 
+                          if(lag_value > 0) paste0(", Lag: ", lag_value) else ""),
+            showarrow = FALSE,
+            font = list(size = 12, color = "#666")
+          )
+        )
+      ) %>%
+      config(displayModeBar = TRUE, displaylogo = FALSE, 
+             modeBarButtonsToRemove = list('sendDataToCloud', 'hoverCompareCartesian', 
+                                          'hoverClosestCartesian', 'select2d', 'lasso2d'), 
+             responsive = TRUE)
+  }, error = function(e) {
+    warning(paste("Error creating combined subplot:", e$message))
+    return(plot_ly() %>% layout(title = "Error creating S-curve visualization. Please check your parameters."))
+  })
 }
 
 # -------------------------------------------------------------------------
@@ -199,6 +314,7 @@ ui_s_curve_eda_univariate <- function(id) {
 # -------------------------------------------------------------------------
 server_s_curve_eda_univariate <- function(id, df, var_choices) {
   moduleServer(id, function(input, output, session) {
+    # Update variable choices when they change
     observe({
       req(var_choices())
       updateSelectInput(session, "variable_univ", choices = c("Select" = "N/A", var_choices()))
@@ -229,12 +345,19 @@ server_s_curve_eda_univariate <- function(id, df, var_choices) {
       req(df())
       data <- df()
      
-      # Convert date column if exists
-      if ("Period" %in% names(data)) {
-        data$Period <- as.Date(data$Period)
-      } else if ("periodo" %in% names(data)) {
-        data$Period <- as.Date(data$periodo)
-      }
+      # Ensure data contains valid date column 
+      tryCatch({
+        # Convert date column if exists
+        if ("Period" %in% names(data)) {
+          data$Period <- as.Date(data$Period)
+        } else if ("periodo" %in% names(data)) {
+          data$Period <- as.Date(data$periodo)
+        } else {
+          warning("No date column found in data.")
+        }
+      }, error = function(e) {
+        warning(paste("Error converting date column:", e$message))
+      })
      
       return(data)
     })
@@ -263,7 +386,9 @@ server_s_curve_eda_univariate <- function(id, df, var_choices) {
       if (!is.null(filtered_data()) && input$variable_univ != "N/A") {
         # Render chart
         output$s_curve_plot <- renderPlotly({
-          render_s_curve_plots(filtered_data(), input)
+          withProgress(message = 'Generating S-Curve...', value = 0, {
+            render_s_curve_plots(filtered_data(), input)
+          })
         })
       }
     })
@@ -271,7 +396,9 @@ server_s_curve_eda_univariate <- function(id, df, var_choices) {
     # Render initial chart
     output$s_curve_plot <- renderPlotly({
       req(filtered_data(), input$variable_univ != "N/A")
-      render_s_curve_plots(filtered_data(), input)
+      withProgress(message = 'Generating S-Curve...', value = 0, {
+        render_s_curve_plots(filtered_data(), input)
+      })
     })
   })
 }

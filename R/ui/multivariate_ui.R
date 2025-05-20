@@ -1,5 +1,5 @@
 # =============================================================================
-# Multivariate Analysis Tab
+# Multivariate tab UI definition with KPI Transformation module
 # =============================================================================
 
 ui_multivariate <- function() {
@@ -37,14 +37,42 @@ ui_multivariate <- function() {
                    h4("Variable Selection", class = "section-title"),
                    div(class = "variable-selection",
                        selectInput("kpi_multi", "KPI", choices = c("None"), selected = "None"),
-                       radioButtons("kpi_normalization_multi", "KPI Normalization:",
+                       
+                       # Add KPI Transformation controls
+                       h4("KPI Transformation", class = "section-title"),
+                       radioButtons("kpi_transformation_multi", NULL,
+                                    choices = c("None", "Logarithmic", "Moving Average"),
+                                    selected = "None"),
+                       
+                       # Conditional panel for Moving Average window size
+                       conditionalPanel(
+                         condition = "input.kpi_transformation_multi == 'Moving Average'",
+                         sliderInput("ma_window_multi", "Window Size (periods)", 
+                                     min = 2, max = 30, value = 3, step = 1)
+                       ),
+                       
+                       # # Lag and Decay parameters for KPI
+                       # div(class = "transform-params",
+                       #     div(class = "transform-param-item", 
+                       #         numericInput("lag_kpi_multi", "KPI Lag", value = 0, min = 0, step = 1)),
+                       #    
+                       #     div(class = "transform-param-item", 
+                       #         numericInput("decay_kpi_multi", "KPI Decay", value = 1, min = 0, max = 1, step = 0.1))
+                       # ),
+                       
+                       # KPI Normalization (existing)
+                       h4("KPI Normalization", class = "section-title"),
+                       radioButtons("kpi_normalization_multi", "Normalization:",
                                     choices = c("None", "Division", "Subtraction"),
                                     selected = "None"),
+                       
                        tags$div(
                          style = "font-size: 0.85rem; color: #666; margin-bottom: 15px;",
                          tags$p("Division: KPI/mean(KPI)"),
                          tags$p("Subtraction: KPI-mean(KPI)")
                        ),
+                       
+                       # Variable selection (existing)
                        selectInput("var1_multi", "Variable 1", choices = c("None"), selected = "None"),
                        selectInput("var2_multi", "Variable 2", choices = c("None"), selected = "None"),
                        selectInput("var3_multi", "Variable 3", choices = c("None"), selected = "None"),
@@ -98,22 +126,13 @@ ui_multivariate <- function() {
                                         div(class = "transform-param-item", numericInput("beta_multi", "Beta", value = 1, min = 0, step = 0.1))
                                     )
                                 ),
-                                # fluidRow(
-                                #   column(6, div(class = "chart-box", h4("Summed Variables", class = "chart-title"), plotlyOutput("sum_variables_chart", height = "320px"))),
-                                #   column(6, div(class = "chart-box", h4("Transformed Summed Variables vs KPI", class = "chart-title"), plotlyOutput("sum_variables_transf_chart", height = "320px")))
-                                # ),
-                                # conditionalPanel(
-                                #   condition = "input.trans_var1 == 'S Origin' || input.trans_var1 == 'S Shaped'",
-                                #   div(class = "chart-box", h4("S-Curve EDA (Multivariate)", class = "chart-title"), plotlyOutput("s_curve_multivariate_plot", height = "400px"))
-                                # ),
                                 fluidRow(
                                   column(6, div(class = "chart-box", h4("Summed Variables (Linear Flighting)", class = "chart-title"), plotlyOutput("sum_variables_chart", height = "320px"))),
                                   column(6, div(class = "chart-box", h4("Transformed Summed Variables vs KPI", class = "chart-title"), plotlyOutput("sum_variables_transf_chart", height = "320px")))
                                 ),
                                 conditionalPanel(
                                   condition = "input.trans_var1 == 'S Origin' || input.trans_var1 == 'S Shaped'",
-                                  column(12,
-                                         div(class = "chart-box", h4("S-Curve EDA (Multivariate)", class = "chart-title"), plotlyOutput("s_curve_multivariate_plot", height = "400px")))
+                                  div(class = "chart-box", h4("S-Curve EDA (Multivariate)", class = "chart-title"), plotlyOutput("s_curve_multivariate_plot", height = "400px"))
                                 ),
                                 fluidRow(
                                   column(4, div(class = "chart-box", h4("Boxplot (Summed Variable)", class = "chart-title"), plotlyOutput("boxplot_multi_sum", height = "300px"))),

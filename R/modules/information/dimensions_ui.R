@@ -21,7 +21,7 @@ dimensions_ui_module_server <- function(input, output, session, rv) {
   
   output$cross_sectional_dimension_ui <- renderUI({
     req(rv$data)
-    keywords <- c("Geography", "Product", "Campaign", "Outlet", "Creative")
+    keywords <- c("Geography", "Geografia", "Product", "Campaign", "Outlet", "Creative")
     available_columns <- names(rv$data)[names(rv$data) %in% keywords]
     if (length(available_columns) > 0) {
       div(paste(available_columns, collapse = ", "))
