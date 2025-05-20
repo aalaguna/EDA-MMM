@@ -22,7 +22,8 @@ ensure_packages <- function(packages) {
 required_packages <- c(
   "shiny", "dplyr", "tidyr", "ggplot2", "corrplot", "zoo", "stringr", 
   "DT", "plotly", "shinyjs", "gridExtra", "scales", "purrr", "shinythemes", 
-  "shinyWidgets", "lubridate", "moments", "jsonlite", "RColorBrewer"
+  "shinyWidgets", "lubridate", "moments", "jsonlite", "RColorBrewer", 
+  "shinycssloaders"
 )
 
 # Verificar e instalar paquetes faltantes
