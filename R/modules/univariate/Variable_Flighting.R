@@ -105,8 +105,8 @@ render_variable_flighting <- function(df, kpi_univ, variable_univ, geography_uni
     )
   
   # convert to ggplotly
-  # p <- ggplotly(p_static, tooltip = 'text') %>% 
-  #   layout(hovermode = 'x unified')
+  p <- ggplotly(p_static, tooltip = 'text') %>%
+    layout(hovermode = 'x unified')
   # 
   # p <- plotly::plot_ly(data_to_plot, x = ~date) %>%
   #   plotly::add_trace(
