@@ -12,7 +12,7 @@ render_variable_flighting <- function(df, kpi_univ, variable_univ, geography_uni
   #   geography_univ: Selected geography (for title)
   #
   # Returns:
-  #   plotly object with comparison chart
+  #   ggplot object with comparison chart
   
   req(df, kpi_univ, variable_univ)
   validate(
@@ -72,67 +72,103 @@ render_variable_flighting <- function(df, kpi_univ, variable_univ, geography_uni
   data_to_plot <- data_to_plot %>% arrange(date)
   
   # GRAPH
-  p <- plotly::plot_ly(data_to_plot, x = ~date) %>%
-    plotly::add_trace(
-      y = ~Variable, 
-      name = "Variable", 
-      type = "scatter",
-      mode = "lines+markers",
-      line = list(color = "red", width = 2), 
-      marker = list(color = "red", size = 6),
-      yaxis = "y",
-      hovertemplate = paste(
-        "Date: %{x|%Y-%m-%d}<br>",
-        "Variable: %{y:.2f}<extra></extra>"
+  p_static <- ggplot2::ggplot(
+    data = data_to_plot,
+    aes(
+      x = date,
+      y = Variable,
+      text = paste(
+        'Date:', format(date, '%Y-%m-%d'), '<br>',
+        'Variable:', sprintf('%.2f', Variable)
       )
-    ) %>%
-    plotly::add_trace(
-      y = ~KPI, 
-      name = "KPI", 
-      type = "scatter",
-      mode = "lines+markers",
-      line = list(color = "blue", width = 2), 
-      marker = list(color = "blue", size = 6),
-      yaxis = "y2",
-      hovertemplate = paste(
-        "Date: %{x|%Y-%m-%d}<br>",
-        "KPI: %{y:.2f}<extra></extra>"
-      )
-    ) %>%
-    plotly::layout(
-      title = list(
-        text = paste("KPI vs. Variable (Geography:", geography_univ, ")"),
-        font = list(size = 16)
-      ),
-      xaxis = list(
-        title = list(text = "Time", standoff = 25),
-        type = "date",
-        tickformat = "%Y-%m",
-        dtick = "M3",
-        tickangle = -45,
-        automargin = TRUE
-      ),
-      yaxis = list(
-        title = list(text = "Variable", standoff = 20),
-        side = "left",
-        automargin = TRUE
-      ),
-      yaxis2 = list(
-        title = list(text = "KPI", standoff = 20),
-        overlaying = "y", 
-        side = "right",
-        automargin = TRUE
-      ),
-      legend = list(
-        orientation = "v",
-        xanchor = "left",
-        x = 1.02,
-        y = 1,
-        bgcolor = "rgba(255,255,255,0.95)"
-      ),
-      margin = list(l = 70, r = 120, t = 60, b = 80),
-      hovermode = "x unified"
     )
+  ) +
+    geom_line(color = 'red', linewidth = 0.8) +
+    geom_point(color = 'red', size = 2) +
+    labs(
+      title = paste("Variable (Geography:", geography_univ, ")"),
+         x = 'Time',
+         y = "Variable"
+      ) +
+    scale_x_date(
+      date_labels = '%Y-%m',
+      date_breaks = '3 months'
+    ) +
+    theme_minimal(base_size = 12) +
+    theme(
+      plot.title = element_text(size = 16, hjust = 0.5),
+      axis.text.x = element_text(angle = -45, hjust = 0),
+      axis.title.x = element_text(margin = margin(t = 10)),
+      axis.title.y = element_text(margin = margin(r = 10)),
+      plot.margin = margin(t = 20, r = 30, b = 30, l = 30),
+      legend.position = 'none'
+    )
+  
+  # convert to ggplotly
+  # p <- ggplotly(p_static, tooltip = 'text') %>% 
+  #   layout(hovermode = 'x unified')
+  # 
+  # p <- plotly::plot_ly(data_to_plot, x = ~date) %>%
+  #   plotly::add_trace(
+  #     y = ~Variable, 
+  #     name = "Variable", 
+  #     type = "scatter",
+  #     mode = "lines+markers",
+  #     line = list(color = "red", width = 2), 
+  #     marker = list(color = "red", size = 6),
+  #     yaxis = "y",
+  #     hovertemplate = paste(
+  #       "Date: %{x|%Y-%m-%d}<br>",
+  #       "Variable: %{y:.2f}<extra></extra>"
+  #     )
+  #   ) %>%
+  #   plotly::add_trace(
+  #     y = ~KPI, 
+  #     name = "KPI", 
+  #     type = "scatter",
+  #     mode = "lines+markers",
+  #     line = list(color = "blue", width = 2), 
+  #     marker = list(color = "blue", size = 6),
+  #     yaxis = "y2",
+  #     hovertemplate = paste(
+  #       "Date: %{x|%Y-%m-%d}<br>",
+  #       "KPI: %{y:.2f}<extra></extra>"
+  #     )
+  #   ) %>%
+  #   plotly::layout(
+  #     title = list(
+  #       text = paste("KPI vs. Variable (Geography:", geography_univ, ")"),
+  #       font = list(size = 16)
+  #     ),
+  #     xaxis = list(
+  #       title = list(text = "Time", standoff = 25),
+  #       type = "date",
+  #       tickformat = "%Y-%m",
+  #       dtick = "M3",
+  #       tickangle = -45,
+  #       automargin = TRUE
+  #     ),
+  #     yaxis = list(
+  #       title = list(text = "Variable", standoff = 20),
+  #       side = "left",
+  #       automargin = TRUE
+  #     ),
+  #     yaxis2 = list(
+  #       title = list(text = "KPI", standoff = 20),
+  #       overlaying = "y", 
+  #       side = "right",
+  #       automargin = TRUE
+  #     ),
+  #     legend = list(
+  #       orientation = "v",
+  #       xanchor = "left",
+  #       x = 1.02,
+  #       y = 1,
+  #       bgcolor = "rgba(255,255,255,0.95)"
+  #     ),
+  #     margin = list(l = 70, r = 120, t = 60, b = 80),
+  #     hovermode = "x unified"
+  #   )
   
   return(p)
 }
