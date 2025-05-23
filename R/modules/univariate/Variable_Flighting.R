@@ -71,31 +71,29 @@ render_variable_flighting <- function(df, kpi_univ, variable_univ, geography_uni
   # data time sort
   data_to_plot <- data_to_plot %>% arrange(date)
   
-  # reshape data to long format
-  data_to_plot <- data_to_plot %>% 
-    pivot_longer(cols = c(Variable, KPI),
-                 names_to = 'Series',
-                 values_to = 'Value')
+  # Add secondary y-axis
+  max_var <- max(data_to_plot$Variable, na.rm = T)
+  max_kpi <- max(data_to_plot$KPI, na.rm = T)
   
-  color_mapping <- c('Variable' = 'red', 'KPI' = 'blue')
+  scale_factor <- max_var / max_kpi
   
   # GRAPH
   p_static <- ggplot2::ggplot(
     data = data_to_plot,
-    aes(
-      x = date,
-      y = Value,
-      color = Series
-    )
-  ) +
-    geom_line(aes(group = Series), linewidth = 1) +
-    geom_point(size = 1) +
-    scale_color_manual(values = color_mapping) +
+    aes(x = date)) +
+    geom_line(aes(y = Variable, color = 'Variable'), linewidth = 1) +
+    geom_point(aes(y = Variable, color = 'Variable'), size = 1) +
+    geom_line(aes(y = KPI * scale_factor, color = 'KPI'), linewidth = 1) +
+    geom_point(aes(y = KPI * scale_factor, color = 'KPI'), size = 1) +
+    scale_color_manual(values = c('Variable' = 'red', 'KPI' = 'blue')) +
+    scale_y_continuous(
+      name = 'Variable',
+      sec.axis = sec_axis(~./scale_factor, name = 'KPI')
+    ) +
     scale_x_date(date_labels = '%Y-%m', date_breaks = '3 months') +
     labs(
       title = paste("KPI vs. Variable (Geography:", geography_univ, ")"),
       x = 'Time',
-      y = NULL,
       color = 'Series'
       ) +
     theme_minimal() +
@@ -103,30 +101,12 @@ render_variable_flighting <- function(df, kpi_univ, variable_univ, geography_uni
       plot.title = element_text(size = 12),
       axis.text.x = element_text(angle = 45, hjust = 1),
       axis.title.x = element_text(margin = margin(t = 25)),
-      axis.title.y = element_blank(),
       legend.position = 'right',
-      legend.background = element_rect(fill = 'rgba(255,255,255,0.95)'),
-      plot.margin = margin(l = 20, r = 20, t = 20, b = 20)
-    )
-  
-  # Add secondary y-axis
-  max_var <- max(data_to_plot$Variable, na.rm = T)
-  max_kpi <- max(data_to_plot$KPI, na.rm = T)
-  
-  scale_factor <- max_var / max_kpi
-  
-  p_static <- p_static +
-    scale_y_continuous(
-      name = 'Variable',
-      sec.axis = sec_axis(~.*scale_factor, name = 'KPI')
+      legend.background = element_rect(fill = 'rgba(255,255,255,0.95)')
     )
   
   # convert to ggplotly
-  p <- ggplotly(p_static, tooltip = 'text') %>%
-    layout(hovermode = 'x unified',
-           yaxis = list(title = list(text = 'Variable', font = list(color = 'red'))),
-           yaxis2 = list(title = list(text = 'KPI', font = list(color = 'blue')))
-           )
+  p <- ggplotly(p_static)
   
   # p <- plotly::plot_ly(data_to_plot, x = ~date) %>%
   #   plotly::add_trace(
