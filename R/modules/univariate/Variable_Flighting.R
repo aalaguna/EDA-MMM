@@ -71,38 +71,34 @@ render_variable_flighting <- function(df, kpi_univ, variable_univ, geography_uni
   # data time sort
   data_to_plot <- data_to_plot %>% arrange(date)
   
-  # Add secondary y-axis
+  # GRAPH
+  
+  # rescale ranges
   max_var <- max(data_to_plot$Variable, na.rm = T)
   max_kpi <- max(data_to_plot$KPI, na.rm = T)
-  
+
   scale_factor <- max_var / max_kpi
-  
-  # GRAPH
+
   p_static <- ggplot2::ggplot(
     data = data_to_plot,
     aes(x = date)) +
-    geom_line(aes(y = Variable, color = 'Variable'), linewidth = 1) +
-    geom_point(aes(y = Variable, color = 'Variable'), size = 1) +
-    geom_line(aes(y = KPI * scale_factor, color = 'KPI'), linewidth = 1) +
-    geom_point(aes(y = KPI * scale_factor, color = 'KPI'), size = 1) +
-    scale_color_manual(values = c('Variable' = 'red', 'KPI' = 'blue')) +
-    scale_y_continuous(
-      name = 'Variable',
-      sec.axis = sec_axis(~./scale_factor, name = 'KPI')
-    ) +
+    geom_line(aes(y = Variable, text = paste('Date:', format(date, '%Y-%m'),
+                                             '<br>Variable:', Variable)), 
+              color = 'red', linewidth = 1) +
+    geom_line(aes(y = KPI * scale_factor, text = paste('Date:', format(date, '%Y-%m'),
+                                                       '<br>KPI:', KPI)), 
+              color = 'blue', linewidth = 1) +
     scale_x_date(date_labels = '%Y-%m', date_breaks = '3 months') +
     labs(
-      title = paste("KPI vs. Variable (Geography:", geography_univ, ")"),
-      x = 'Time',
-      color = 'Series'
-      ) +
+    title = paste("KPI vs. Variable (Geography:", geography_univ, ")"),
+    x = 'Time'
+    ) +
     theme_minimal() +
     theme(
       plot.title = element_text(size = 12),
       axis.text.x = element_text(angle = 45, hjust = 1),
       axis.title.x = element_text(margin = margin(t = 25)),
-      legend.position = 'right',
-      legend.background = element_rect(fill = 'rgba(255,255,255,0.95)')
+      legend.position = 'right'
     )
   
   # convert to ggplotly

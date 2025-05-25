@@ -1,9 +1,8 @@
-# # Transformed_Variable.R
-# 
-# # =============================================================================
-# # Renders the chart of the transformed variable over time.
-# # =============================================================================
-# 
+# Transformed_Variable.R
+
+# =============================================================================
+# Renders the chart of the transformed variable over time.
+# =============================================================================
 
 
 
@@ -11,24 +10,24 @@ render_transformation_chart <- function(df, kpi_univ, variable_univ, transformat
                                         lag_univ, decay_univ,
                                         alpha_univ, beta_univ, maxval_univ,
                                         geography_univ) {
-  
+
   req(df, kpi_univ, variable_univ, transformation_univ)
   validate(
     need(variable_univ != "N/A", "Please select a valid variable for transformation."),
     need(kpi_univ != "N/A", "Please select a valid KPI.")
   )
-  
+
   date_col <- if ("Period" %in% names(df)) "Period" else "periodo"
   req(date_col)
-  
+
   # --- KPI Vector ---
   kpi_vec <- as.numeric(df[[kpi_univ]])
-  
+
   # --- Transform Variable ---
   data_vec <- as.numeric(df[[variable_univ]])
-  
+
   data_trans <- data_vec
-  
+
   # Apply Lag
   if (lag_univ > 0) {
     if (lag_univ >= length(data_trans)) {
@@ -50,8 +49,8 @@ render_transformation_chart <- function(df, kpi_univ, variable_univ, transformat
       }
     }
   }
-  
-  
+
+
   # Apply Transformation
   transformed_data <- tryCatch({
     switch(transformation_univ,
@@ -87,7 +86,7 @@ render_transformation_chart <- function(df, kpi_univ, variable_univ, transformat
     notifyUser(paste("Transformation error:", e$message), "error")
     data_trans
   })
-  
+
   # --- date ---
 
   df_plot <- df %>%
@@ -108,9 +107,9 @@ render_transformation_chart <- function(df, kpi_univ, variable_univ, transformat
       label = paste0(year, "-", month_label)
     ) %>%
     arrange(date)
-  
 
-  
+
+
   # --- Plot ---
   plot_ly(df_plot, x = ~date) %>%
     add_trace(
@@ -169,7 +168,7 @@ render_transformation_chart <- function(df, kpi_univ, variable_univ, transformat
       margin = list(l = 70, r = 120, t = 60, b = 80),
       hovermode = "x unified"
     )
-  
+
 }
 
 
@@ -182,18 +181,18 @@ render_transformation_chart <- function(df, kpi_univ, variable_univ, transformat
 #                                         geography_univ) {
 #   library(ggplot2)
 #   library(plotly)
-#   
+# 
 #   req(df, variable_univ, transformation_univ)
 #   validate(
 #     need(variable_univ != "N/A", "Please select a valid variable for transformation.")
 #   )
-#   
+# 
 #   var_name <- variable_univ
 #   data_vec <- as.numeric(df[[var_name]])
 #   validate(
 #     need(length(data_vec) > 0, "No data available for transformation.")
 #   )
-#   
+# 
 #   # 1. Transform
 #   transformed_data <- tryCatch({
 #     switch(transformation_univ,
@@ -226,7 +225,7 @@ render_transformation_chart <- function(df, kpi_univ, variable_univ, transformat
 #     notifyUser(paste("Transformation error:", e$message), "error")
 #     data_vec
 #   })
-#   
+# 
 #   # 2. Lag
 #   if (lag_univ > 0) {
 #     n <- length(transformed_data)
@@ -236,13 +235,13 @@ render_transformation_chart <- function(df, kpi_univ, variable_univ, transformat
 #       transformed_data <- c(rep(NA, lag_univ), head(transformed_data, n - lag_univ))
 #     }
 #   }
-#   
+# 
 #   # 3. Decay
 #   decay_value <- 1 - decay_univ
 #   for (i in 2:length(transformed_data)) {
 #     transformed_data[i] <- transformed_data[i - 1] + (transformed_data[i] * decay_value)
 #   }
-#   
+# 
 #   # Preparar dataframe para graficar
 #   date_col <- if ("Period" %in% names(df)) "Period" else "periodo"
 #   df_plot <- df %>%
@@ -252,17 +251,38 @@ render_transformation_chart <- function(df, kpi_univ, variable_univ, transformat
 #     ) %>%
 #     arrange(date)
 #   
-#   # ggplot 
-#   g <- ggplot(df_plot, aes(x = date, y = Transformed)) +
-#     geom_line(color = "red") +
-#     geom_point(color = "red", size = 0.5) +
-#     labs(
-#       title = paste("Transformed Variable (Geography:", geography_univ, ")"),
-#       x = "Date",
-#       y = "Transformed Value"
-#     ) +
-#     theme_minimal()
+#   max_var_transformed <- max(df_plot$Variable_Transformed, na.rm = TRUE)
+#   max_kpi <- max(df_plot$KPI, na.rm = TRUE)
+#   scale_factor <- max_var_transformed / max_kpi
+# 
+#   # ggplot
 #   
-#   # ggplotly
-#   ggplotly(g)
-# }
+#   g_static <- ggplot(df_plot, aes(x = date)) +
+#     geom_line(aes(y = Variable_Transformed, color = "Variable (Trans)"), linewidth = 1) +
+#     geom_point(aes(y = Variable_Transformed, color = "Variable (Trans)"), size = 2) +
+#     geom_line(aes(y = KPI * scale_factor, color = "KPI"), linewidth = 1) +
+#     geom_point(aes(y = KPI * scale_factor, color = "KPI"), size = 2) +
+#     scale_color_manual(values = c("Variable (Trans)" = "red", "KPI" = "blue")) +
+#     scale_y_continuous(
+#       name = "Transformed Variable",
+#       sec.axis = sec_axis(~./scale_factor, name = "KPI")
+#     ) +
+#     scale_x_date(date_labels = "%Y-%m", date_breaks = "M3") +
+#     labs(
+#       title = paste("Transformed Variable vs KPI (Geography:", geography_univ, ")"),
+#       x = "Time",
+#       color = "Series"
+#     ) +
+#     theme_bw() +
+#     theme(
+#       plot.title = element_text(size = 16),
+#       axis.title.x = element_text(margin = margin(t = 25)),
+#       axis.text.x = element_text(angle = -45, hjust = 1),
+#       legend.position = "right",
+#       plot.margin = margin(l = 70, r = 120, t = 60, b = 80)
+#     )
+# 
+# # convert to ggplotly
+# g <- ggplotly(g_static)
+# 
+#  }
