@@ -82,16 +82,14 @@ render_variable_flighting <- function(df, kpi_univ, variable_univ, geography_uni
   p_static <- ggplot2::ggplot(
     data = data_to_plot,
     aes(x = date)) +
-    geom_line(aes(y = Variable, text = paste('Date:', format(date, '%Y-%m'),
-                                             '<br>Variable:', Variable)), 
+    geom_line(aes(y = Variable), 
               color = 'red', linewidth = 1) +
-    geom_line(aes(y = KPI * scale_factor, text = paste('Date:', format(date, '%Y-%m'),
-                                                       '<br>KPI:', KPI)), 
+    geom_line(aes(y = KPI * scale_factor), 
               color = 'blue', linewidth = 1) +
     scale_x_date(date_labels = '%Y-%m', date_breaks = '3 months') +
     labs(
-    title = paste("KPI vs. Variable (Geography:", geography_univ, ")"),
-    x = 'Time'
+      title = paste("KPI vs. Variable (Geography:", geography_univ, ")"),
+      x = 'Time'
     ) +
     theme_minimal() +
     theme(
