@@ -78,14 +78,16 @@ render_variable_flighting <- function(df, kpi_univ, variable_univ, geography_uni
   max_kpi <- max(data_to_plot$KPI, na.rm = T)
 
   scale_factor <- max_var / max_kpi
-
+  
+  # data_to_plot$date <- as.Date(data_to_plot$date)
+  
   p_static <- ggplot2::ggplot(
     data = data_to_plot,
     aes(x = date)) +
-    geom_line(aes(y = Variable), 
-              color = 'red', linewidth = 1) +
-    geom_line(aes(y = KPI * scale_factor), 
-              color = 'blue', linewidth = 1) +
+    geom_line(aes(y = Variable, group = 1), 
+              color = 'red', linewidth = 1, name = 'Variable') +
+    geom_line(aes(y = KPI * scale_factor, group = 2),
+              color = 'blue', linewidth = 1, name = 'KPI') +
     scale_x_date(date_labels = '%Y-%m', date_breaks = '3 months') +
     labs(
       title = paste("KPI vs. Variable (Geography:", geography_univ, ")"),
@@ -101,6 +103,13 @@ render_variable_flighting <- function(df, kpi_univ, variable_univ, geography_uni
   
   # convert to ggplotly
   p <- ggplotly(p_static)
+  
+  # Modify hover texts
+  p$x$data[[1]]$hovertemplate <- paste0("Variable: %{customdata[0]}<br>Date: %{x|%Y-%m-%d}<extra></extra>")
+  p$x$data[[1]]$customdata <- lapply(data_to_plot$Variable, function(x) list(x))
+  
+  p$x$data[[2]]$hovertemplate <- paste0("KPI: %{customdata[0]}<br>Date: %{x|%Y-%m-%d}<extra></extra>")
+  p$x$data[[2]]$customdata <- lapply(data_to_plot$KPI, function(x) list(x))
   
   # p <- plotly::plot_ly(data_to_plot, x = ~date) %>%
   #   plotly::add_trace(

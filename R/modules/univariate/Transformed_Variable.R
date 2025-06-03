@@ -121,10 +121,10 @@ render_transformation_chart <- function(df, kpi_univ, variable_univ, transformat
   p_static <- ggplot2::ggplot(
     data = df_plot,
     aes(x = date)) +
-    geom_line(aes(y = Variable_Transformed), 
-              color = 'red', linewidth = 1) +
-    geom_line(aes(y = KPI * scale_factor), 
-              color = 'blue', linewidth = 1) +
+    geom_line(aes(y = Variable_Transformed, group = 1), 
+              color = 'red', linewidth = 1, name = 'Variable Transformed') +
+    geom_line(aes(y = KPI * scale_factor, group = 2), 
+              color = 'blue', linewidth = 1, name = 'KPI') +
     scale_x_date(date_labels = '%Y-%m', date_breaks = '3 months') +
     labs(
       title = paste("Transformed Variable vs KPI (Geography:", geography_univ, ")"),
@@ -139,6 +139,13 @@ render_transformation_chart <- function(df, kpi_univ, variable_univ, transformat
     )
   
   p <- ggplotly(p_static)
+  
+  # Modify hover texts
+  p$x$data[[1]]$hovertemplate <- paste0("Variable Transformed: %{customdata[0]}<br>Date: %{x|%Y-%m-%d}<extra></extra>")
+  p$x$data[[1]]$customdata <- lapply(df_plot$Variable_Transformed, function(x) list(x))
+  
+  p$x$data[[2]]$hovertemplate <- paste0("KPI: %{customdata[0]}<br>Date: %{x|%Y-%m-%d}<extra></extra>")
+  p$x$data[[2]]$customdata <- lapply(df_plot$KPI, function(x) list(x))
   
   return(p)
   
@@ -155,7 +162,7 @@ render_transformation_chart <- function(df, kpi_univ, variable_univ, transformat
   #       "Date: %{x|%Y-%m-%d}<br>",
   #       "Variable: %{y:.2f}<extra></extra>"
   #     )
-  #   ) %>%
+  #   ) %>% 
   #   add_trace(
   #     y = ~KPI,
   #     name = "KPI",
